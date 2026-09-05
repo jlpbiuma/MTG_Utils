@@ -1,8 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Client-side / Public Supabase client (only uses public anon key)
+// Client-side / Public Supabase client (only uses public anon/publishable key)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key";
+const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  "placeholder-anon-key";
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
