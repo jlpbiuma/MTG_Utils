@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "./auth";
+import { normalizeCardName, processPendingCardsWorker } from "@/lib/worker";
 
 import { parseDecklistText, type ParsedCardLine } from "@/lib/parser";
 
@@ -96,6 +98,8 @@ export async function resolveCardsInBulk(
 
 /**
  * Server Action to import a complete deck from raw text.
+ * Performs instant bulk insertion with local cache lookup and schedules background
+ * Scryfall enrichment for any uncached cards (0 delay for user, 0 chance of HTTP 429).
  */
 export async function importDeckFromText(params: {
   name: string;
@@ -112,10 +116,27 @@ export async function importDeckFromText(params: {
     throw new Error("No se encontraron cartas válidas en el texto proporcionado.");
   }
 
-  // Resolve card information in bulk from Scryfall
-  const resolvedMap = await resolveCardsInBulk(parsedLines);
+  // Deduplicate and aggregate lines by card name and sideboard
+  const aggregatedMap = new Map<string, ParsedCardLine>();
+  for (const line of parsedLines) {
+    const key = `${line.name.toLowerCase().trim()}_${line.isSideboard}`;
+    if (aggregatedMap.has(key)) {
+      aggregatedMap.get(key)!.quantity += line.quantity;
+    } else {
+      aggregatedMap.set(key, { ...line });
+    }
+  }
 
-  // Create deck in Prisma
+  const distinctCards = Array.from(aggregatedMap.values());
+
+  // 1. Check local CardCatalog cache for instant zero-latency resolution
+  const normalizedNames = distinctCards.map((c) => normalizeCardName(c.name));
+  const cachedCatalog = await prisma.cardCatalog.findMany({
+    where: { normalizedName: { in: normalizedNames } },
+  });
+  const catalogMap = new Map(cachedCatalog.map((c) => [c.normalizedName, c]));
+
+  // 2. Create Deck
   const deck = await prisma.deck.create({
     data: {
       userId,
@@ -125,54 +146,61 @@ export async function importDeckFromText(params: {
     },
   });
 
-  // Prepare deck cards data
-  const deckCardsData = parsedLines.map((c) => {
-    const resolved = resolvedMap.get(c.name.toLowerCase().trim());
+  // 3. Prepare deck cards
+  let hasPendingCards = false;
+  const deckCardsData = distinctCards.map((c) => {
+    const norm = normalizeCardName(c.name);
+    const cached = catalogMap.get(norm);
+
+    if (!cached) {
+      hasPendingCards = true;
+    }
 
     return {
       deckId: deck.id,
-      cardScryfallId: resolved ? resolved.scryfallId : `custom-${c.name.toLowerCase().replace(/\s+/g, "-")}`,
-      cardName: resolved ? resolved.name : c.name,
+      cardScryfallId: cached ? cached.id : `pending:${norm}`,
+      cardName: cached ? cached.name : c.name,
       quantity: c.quantity,
       isSideboard: c.isSideboard,
-      manaCost: resolved?.manaCost || null,
-      typeLine: resolved?.typeLine || null,
-      imageUri: resolved?.imageUri || null,
+      manaCost: cached?.manaCost || null,
+      typeLine: cached?.typeLine || null,
+      imageUri: cached?.imageUri || null,
     };
   });
 
-  // Deduplicate deckId + cardScryfallId + isSideboard in case input had duplicates
-  const aggregatedCards = new Map<string, typeof deckCardsData[0]>();
-  for (const card of deckCardsData) {
-    const key = `${card.cardScryfallId}_${card.isSideboard}`;
-    if (aggregatedCards.has(key)) {
-      aggregatedCards.get(key)!.quantity += card.quantity;
-    } else {
-      aggregatedCards.set(key, { ...card });
-    }
+  // 4. Bulk insert all cards in a single database query
+  if (deckCardsData.length > 0) {
+    await prisma.deckCard.createMany({
+      data: deckCardsData,
+    });
   }
 
-  // Insert cards in a single bulk operation
-  const cardsToInsert = Array.from(aggregatedCards.values());
-  if (cardsToInsert.length > 0) {
-    await prisma.deckCard.createMany({
-      data: cardsToInsert,
+  // 5. If any card was not in cache, schedule background worker
+  if (hasPendingCards) {
+    after(async () => {
+      try {
+        await processPendingCardsWorker({ delayMs: 100, batchSize: 75 });
+      } catch (err) {
+        console.error("Background worker failed for deck import:", err);
+      }
     });
   }
 
   revalidatePath("/decks");
   revalidatePath(`/decks/${deck.id}`);
 
-  const totalCards = parsedLines.reduce((s, c) => s + c.quantity, 0);
+  const totalCards = distinctCards.reduce((s, c) => s + c.quantity, 0);
   return {
     deckId: deck.id,
     totalCards,
-    uniqueCards: aggregatedCards.size,
+    uniqueCards: distinctCards.length,
   };
 }
 
 /**
  * Server Action to import user collection from raw text.
+ * Performs instant bulk insertion with local cache lookup and schedules background
+ * Scryfall enrichment for any uncached cards.
  */
 export async function importCollectionFromText(rawText: string): Promise<{
   totalImported: number;
@@ -185,11 +213,9 @@ export async function importCollectionFromText(rawText: string): Promise<{
     throw new Error("No se detectaron cartas para importar.");
   }
 
-  const resolvedMap = await resolveCardsInBulk(parsedLines);
-
   let totalCardsCount = 0;
 
-  // Aggregate input lines by card identifier
+  // Aggregate input lines by normalized card name
   const aggregatedCards = new Map<
     string,
     {
@@ -197,45 +223,49 @@ export async function importCollectionFromText(rawText: string): Promise<{
       quantity: number;
       setCode?: string | null;
       collectorNumber?: string | null;
-      manaCost?: string | null;
-      typeLine?: string | null;
-      imageUri?: string | null;
     }
   >();
 
   for (const line of parsedLines) {
     totalCardsCount += line.quantity;
-    const resolved = resolvedMap.get(line.name.toLowerCase().trim());
-    const scryfallId = resolved ? resolved.scryfallId : `custom-${line.name.toLowerCase().replace(/\s+/g, "-")}`;
-    const cardName = resolved ? resolved.name : line.name;
+    const norm = normalizeCardName(line.name);
 
-    const existingAgg = aggregatedCards.get(scryfallId);
+    const existingAgg = aggregatedCards.get(norm);
     if (existingAgg) {
       existingAgg.quantity += line.quantity;
     } else {
-      aggregatedCards.set(scryfallId, {
-        cardName,
+      aggregatedCards.set(norm, {
+        cardName: line.name,
         quantity: line.quantity,
-        setCode: line.set || resolved?.set || null,
-        collectorNumber: line.collectorNumber || resolved?.collectorNumber || null,
-        manaCost: resolved?.manaCost || null,
-        typeLine: resolved?.typeLine || null,
-        imageUri: resolved?.imageUri || null,
+        setCode: line.set || null,
+        collectorNumber: line.collectorNumber || null,
       });
     }
   }
 
-  const cardIds = Array.from(aggregatedCards.keys());
+  // 1. Check local CardCatalog cache
+  const normalizedNames = Array.from(aggregatedCards.keys());
+  const cachedCatalog = await prisma.cardCatalog.findMany({
+    where: { normalizedName: { in: normalizedNames } },
+  });
+  const catalogMap = new Map(cachedCatalog.map((c) => [c.normalizedName, c]));
+
+  // 2. Fetch user's existing collection cards
+  const candidateIds = normalizedNames.flatMap((norm) => {
+    const cached = catalogMap.get(norm);
+    return cached ? [cached.id, `pending:${norm}`] : [`pending:${norm}`];
+  });
+
   const existingRecords = await prisma.collectionCard.findMany({
     where: {
       userId,
-      cardScryfallId: { in: cardIds },
+      cardScryfallId: { in: candidateIds },
     },
   });
 
   const existingMap = new Map(existingRecords.map((r) => [r.cardScryfallId, r]));
 
-  const toCreate: {
+  const toCreate: Array<{
     userId: string;
     cardScryfallId: string;
     cardName: string;
@@ -245,45 +275,55 @@ export async function importCollectionFromText(rawText: string): Promise<{
     manaCost?: string | null;
     typeLine?: string | null;
     imageUri?: string | null;
-  }[] = [];
+  }> = [];
 
-  const toUpdate: {
+  const toUpdate: Array<{
     id: string;
     quantity: number;
     imageUri?: string | null;
-  }[] = [];
+  }> = [];
 
-  for (const [scryfallId, item] of aggregatedCards.entries()) {
-    const existing = existingMap.get(scryfallId);
+  let hasPendingCards = false;
+
+  for (const [norm, item] of aggregatedCards.entries()) {
+    const cached = catalogMap.get(norm);
+    const targetId = cached ? cached.id : `pending:${norm}`;
+
+    if (!cached) {
+      hasPendingCards = true;
+    }
+
+    const existing = existingMap.get(targetId) || existingMap.get(`pending:${norm}`);
+
     if (existing) {
       toUpdate.push({
         id: existing.id,
         quantity: existing.quantity + item.quantity,
-        imageUri: item.imageUri || existing.imageUri,
+        imageUri: cached?.imageUri || existing.imageUri,
       });
     } else {
       toCreate.push({
         userId,
-        cardScryfallId: scryfallId,
-        cardName: item.cardName,
+        cardScryfallId: targetId,
+        cardName: cached ? cached.name : item.cardName,
         quantity: item.quantity,
-        setCode: item.setCode,
-        collectorNumber: item.collectorNumber,
-        manaCost: item.manaCost,
-        typeLine: item.typeLine,
-        imageUri: item.imageUri,
+        setCode: item.setCode || cached?.setCode || null,
+        collectorNumber: item.collectorNumber || cached?.collectorNumber || null,
+        manaCost: cached?.manaCost || null,
+        typeLine: cached?.typeLine || null,
+        imageUri: cached?.imageUri || null,
       });
     }
   }
 
-  // Bulk insert all new cards in a single query
+  // 3. Bulk insert all new cards in a single query
   if (toCreate.length > 0) {
     await prisma.collectionCard.createMany({
       data: toCreate,
     });
   }
 
-  // Batch update existing cards in parallel transactions of 50
+  // 4. Batch update existing cards in parallel transactions of 50
   if (toUpdate.length > 0) {
     const batchSize = 50;
     for (let i = 0; i < toUpdate.length; i += batchSize) {
@@ -302,12 +342,23 @@ export async function importCollectionFromText(rawText: string): Promise<{
     }
   }
 
+  // 5. Schedule background worker if any card lacks image/metadata
+  if (hasPendingCards) {
+    after(async () => {
+      try {
+        await processPendingCardsWorker({ delayMs: 100, batchSize: 75 });
+      } catch (err) {
+        console.error("Background worker failed for collection import:", err);
+      }
+    });
+  }
+
   revalidatePath("/collection");
   revalidatePath("/decks");
 
   return {
     totalImported: totalCardsCount,
-    uniqueImported: parsedLines.length,
+    uniqueImported: aggregatedCards.size,
   };
 }
 

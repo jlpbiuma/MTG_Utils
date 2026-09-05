@@ -57,3 +57,17 @@ model CollectionCard {
   @@index([userId])
   @@map("user_collections")
 }
+
+model CardCatalog {
+  id              String   @id // Scryfall UUID
+  name            String   @unique
+  normalizedName  String   @unique @map("normalized_name")
+  manaCost        String?  @map("mana_cost")
+  typeLine        String?  @map("type_line")
+  imageUri        String?  @map("image_uri")
+  setCode         String?  @map("set_code")
+  collectorNumber String?  @map("collector_number")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("card_catalog")
+}

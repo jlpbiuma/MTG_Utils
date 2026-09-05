@@ -15,27 +15,37 @@ import {
   DeckCardWithOwnership,
 } from "@/lib/schemas";
 
+interface CollectionLookupMaps {
+  byId: Map<string, number>;
+  byName: Map<string, number>;
+}
+
 /**
- * Builds a fast lookup map of { cardScryfallId: quantity } from user's collection.
+ * Builds fast lookup maps of { cardScryfallId: quantity } and { normalizedName: quantity } from user's collection.
  */
-async function getUserCollectionMap(userId: string): Promise<Map<string, number>> {
+async function getUserCollectionMap(userId: string): Promise<CollectionLookupMaps> {
   const collection = await prisma.collectionCard.findMany({
     where: { userId },
-    select: { cardScryfallId: true, quantity: true },
+    select: { cardScryfallId: true, cardName: true, quantity: true },
   });
 
-  const map = new Map<string, number>();
+  const byId = new Map<string, number>();
+  const byName = new Map<string, number>();
+
   for (const item of collection) {
-    map.set(item.cardScryfallId, item.quantity);
+    byId.set(item.cardScryfallId, item.quantity);
+    const norm = item.cardName.toLowerCase().trim().split(" // ")[0];
+    byName.set(norm, (byName.get(norm) || 0) + item.quantity);
   }
-  return map;
+
+  return { byId, byName };
 }
 
 export async function getDecksWithCompletion(): Promise<DeckWithCompletion[]> {
   try {
     const userId = await getCurrentUserId();
 
-    const [decks, collectionMap] = await Promise.all([
+    const [decks, collectionMaps] = await Promise.all([
       prisma.deck.findMany({
         where: { userId },
         include: { cards: true },
@@ -49,7 +59,8 @@ export async function getDecksWithCompletion(): Promise<DeckWithCompletion[]> {
       const uniqueCards = deck.cards.length;
 
       const ownedCards = deck.cards.reduce((sum, c) => {
-        const owned = collectionMap.get(c.cardScryfallId) || 0;
+        const norm = c.cardName.toLowerCase().trim().split(" // ")[0];
+        const owned = collectionMaps.byId.get(c.cardScryfallId) || collectionMaps.byName.get(norm) || 0;
         return sum + Math.min(owned, c.quantity);
       }, 0);
 
@@ -84,7 +95,7 @@ export async function getDecksWithCompletion(): Promise<DeckWithCompletion[]> {
 export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats | null> {
   const userId = await getCurrentUserId();
 
-  const [deck, collectionMap] = await Promise.all([
+  const [deck, collectionMaps] = await Promise.all([
     prisma.deck.findFirst({
       where: { id: deckId, userId },
       include: {
@@ -103,7 +114,8 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
 
   let ownedCards = 0;
   const cardsWithOwnership: DeckCardWithOwnership[] = deck.cards.map((c) => {
-    const ownedInCollection = collectionMap.get(c.cardScryfallId) || 0;
+    const norm = c.cardName.toLowerCase().trim().split(" // ")[0];
+    const ownedInCollection = collectionMaps.byId.get(c.cardScryfallId) || collectionMaps.byName.get(norm) || 0;
     const effectiveOwned = Math.min(ownedInCollection, c.quantity);
     ownedCards += effectiveOwned;
     const missingCount = Math.max(0, c.quantity - ownedInCollection);
