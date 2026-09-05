@@ -1,6 +1,7 @@
 import { Layers, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
 import { getDecksWithCompletion } from "@/actions/decks";
 import { CreateDeckDialog } from "@/components/create-deck-dialog";
+import { ImportDeckDialog } from "@/components/import-deck-dialog";
 import { DeckCardItem } from "@/components/deck-card-item";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +39,10 @@ export default async function DecksPage() {
           </p>
         </div>
 
-        <CreateDeckDialog />
+        <div className="flex items-center gap-3 flex-wrap">
+          <ImportDeckDialog />
+          <CreateDeckDialog />
+        </div>
       </div>
 
       {/* Summary KPI Cards */}
@@ -77,7 +81,8 @@ export default async function DecksPage() {
           <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto">
             Crea tu primer mazo (Commander, Modern, Standard, etc.) y añade cartas oficiales desde Scryfall para calcular automáticamente tu porcentaje de posesión.
           </p>
-          <div className="mt-6">
+          <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
+            <ImportDeckDialog />
             <CreateDeckDialog />
           </div>
         </div>

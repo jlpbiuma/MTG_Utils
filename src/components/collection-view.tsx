@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { ManaCost } from "@/components/mana-cost";
 import { CardPreviewHover } from "@/components/card-preview-hover";
 import { CardSearchDialog } from "@/components/card-search-dialog";
+import { ImportCollectionDialog } from "@/components/import-collection-dialog";
 import {
   addOrIncrementCard,
   updateCollectionQuantity,
@@ -102,11 +103,14 @@ export function CollectionView({ initialCards, initialStats }: CollectionViewPro
           </p>
         </div>
 
-        <CardSearchDialog
-          onAddCard={handleAddCard}
-          title="Añadir a mi Colección"
-          triggerText="Añadir Cartas a Colección"
-        />
+        <div className="flex items-center gap-3 flex-wrap">
+          <ImportCollectionDialog />
+          <CardSearchDialog
+            onAddCard={handleAddCard}
+            title="Añadir a mi Colección"
+            triggerText="Añadir Cartas a Colección"
+          />
+        </div>
       </div>
 
       {/* KPI Stats */}
@@ -152,7 +156,8 @@ export function CollectionView({ initialCards, initialStats }: CollectionViewPro
               : "Busca cartas en la base de datos de Scryfall e introduce el número de copias que tienes."}
           </p>
           {!searchQuery && (
-            <div className="mt-6">
+            <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
+              <ImportCollectionDialog />
               <CardSearchDialog
                 onAddCard={handleAddCard}
                 title="Añadir a mi Colección"
