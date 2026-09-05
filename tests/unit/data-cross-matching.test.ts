@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "fs";
 import path from "path";
-import { parseDecklistText } from "@/actions/import";
+import { parseDecklistText } from "@/lib/parser";
 
 /**
  * Calculates ownership and completion between deck cards and collection map.

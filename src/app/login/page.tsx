@@ -1,5 +1,7 @@
 import { AuthForm } from "@/components/auth-form";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Iniciar Sesión | MTG Utils",
   description: "Accede a tu cuenta de MTG Utils para gestionar tus mazos y colección.",

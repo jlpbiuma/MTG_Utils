@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseDecklistText } from "@/actions/import";
+import { parseDecklistText } from "@/lib/parser";
 
 describe("Decklist & Collection Text Parser", () => {
   it("should parse standard plaintext lines with quantities", () => {

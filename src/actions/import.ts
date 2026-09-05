@@ -4,13 +4,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "./auth";
 
-export interface ParsedCardLine {
-  quantity: number;
-  name: string;
-  set?: string;
-  collectorNumber?: string;
-  isSideboard: boolean;
-}
+import { parseDecklistText, type ParsedCardLine } from "@/lib/parser";
+
+export type { ParsedCardLine };
 
 export interface ResolvedCardData {
   scryfallId: string;
@@ -28,103 +24,6 @@ const SCRYFALL_HEADERS = {
   Accept: "application/json;q=0.9,*/*;q=0.8",
   "Content-Type": "application/json",
 };
-
-/**
- * Parses decklists in standard MTG formats:
- * - Moxfield export format: `1 Atraxa, Praetors' Voice (2XM) 198 *F*`
- * - MTG Arena format: `Deck`, `4 Lightning Bolt (CLB) 123`, `Sideboard`, `1 Force of Will`
- * - Plaintext format: `4x Lightning Bolt`, `1 Sol Ring`
- * - Sideboard lines: `SB: 1 Card` or under `// Sideboard`, `Sideboard:`, etc.
- */
-export function parseDecklistText(rawText: string): ParsedCardLine[] {
-  const lines = rawText.split(/\r?\n/);
-  const parsedCards: ParsedCardLine[] = [];
-  let inSideboard = false;
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line) continue;
-
-    // Check for section headers
-    const lower = line.toLowerCase();
-    if (
-      lower.startsWith("// sideboard") ||
-      lower.startsWith("sideboard") ||
-      lower.startsWith("//sideboard") ||
-      lower === "sideboard:"
-    ) {
-      inSideboard = true;
-      continue;
-    }
-
-    if (
-      lower.startsWith("// main") ||
-      lower.startsWith("deck") ||
-      lower.startsWith("// deck") ||
-      lower.startsWith("// commander") ||
-      lower.startsWith("commander")
-    ) {
-      inSideboard = false;
-      continue;
-    }
-
-    // Ignore other commentary lines starting with // or #
-    if (line.startsWith("//") || line.startsWith("#")) {
-      continue;
-    }
-
-    let isSideboardCard = inSideboard;
-    let cardText = line;
-
-    // Check for "SB: 1 Card Name" format
-    if (/^sb:\s*/i.test(cardText)) {
-      isSideboardCard = true;
-      cardText = cardText.replace(/^sb:\s*/i, "").trim();
-    }
-
-    // Extract quantity (e.g. "4 ", "4x ", "1 ", or default 1)
-    let quantity = 1;
-    const qtyMatch = cardText.match(/^(\d+)(?:x|\s)\s*(.*)$/i);
-    if (qtyMatch) {
-      quantity = parseInt(qtyMatch[1], 10) || 1;
-      cardText = qtyMatch[2].trim();
-    }
-
-    // Clean up trailing tags like *F*, *E*, *Foil*, etc.
-    cardText = cardText.replace(/\s*\*[A-Za-z0-9]+\*\s*$/g, "").trim();
-
-    // Extract set code and collector number if present, e.g. "(2XM) 198" or "(CLB) 12"
-    let set: string | undefined;
-    let collectorNumber: string | undefined;
-
-    const setMatch = cardText.match(/\(([A-Za-z0-9_]{3,6})\)\s*([A-Za-z0-9\-]+)?$/i);
-    if (setMatch) {
-      set = setMatch[1].toLowerCase();
-      collectorNumber = setMatch[2]?.trim();
-      cardText = cardText.replace(/\(([A-Za-z0-9_]{3,6})\)\s*([A-Za-z0-9\-]+)?$/i, "").trim();
-    }
-
-    // Fallback: [SET:123] format
-    const altSetMatch = cardText.match(/\[([A-Za-z0-9_]{3,6}):([A-Za-z0-9\-]+)\]$/i);
-    if (altSetMatch) {
-      set = altSetMatch[1].toLowerCase();
-      collectorNumber = altSetMatch[2]?.trim();
-      cardText = cardText.replace(/\[([A-Za-z0-9_]{3,6}):([A-Za-z0-9\-]+)\]$/i, "").trim();
-    }
-
-    if (cardText.length > 0) {
-      parsedCards.push({
-        quantity,
-        name: cardText,
-        set,
-        collectorNumber,
-        isSideboard: isSideboardCard,
-      });
-    }
-  }
-
-  return parsedCards;
-}
 
 /**
  * Resolves a list of card names in bulk using Scryfall POST /cards/collection endpoint.
@@ -253,9 +152,12 @@ export async function importDeckFromText(params: {
     }
   }
 
-  // Insert cards into database
-  for (const card of Array.from(aggregatedCards.values())) {
-    await prisma.deckCard.create({ data: card });
+  // Insert cards in a single bulk operation
+  const cardsToInsert = Array.from(aggregatedCards.values());
+  if (cardsToInsert.length > 0) {
+    await prisma.deckCard.createMany({
+      data: cardsToInsert,
+    });
   }
 
   revalidatePath("/decks");
@@ -287,43 +189,116 @@ export async function importCollectionFromText(rawText: string): Promise<{
 
   let totalCardsCount = 0;
 
+  // Aggregate input lines by card identifier
+  const aggregatedCards = new Map<
+    string,
+    {
+      cardName: string;
+      quantity: number;
+      setCode?: string | null;
+      collectorNumber?: string | null;
+      manaCost?: string | null;
+      typeLine?: string | null;
+      imageUri?: string | null;
+    }
+  >();
+
   for (const line of parsedLines) {
     totalCardsCount += line.quantity;
     const resolved = resolvedMap.get(line.name.toLowerCase().trim());
     const scryfallId = resolved ? resolved.scryfallId : `custom-${line.name.toLowerCase().replace(/\s+/g, "-")}`;
     const cardName = resolved ? resolved.name : line.name;
 
-    const existing = await prisma.collectionCard.findUnique({
-      where: {
-        userId_cardScryfallId: {
-          userId,
-          cardScryfallId: scryfallId,
-        },
-      },
-    });
+    const existingAgg = aggregatedCards.get(scryfallId);
+    if (existingAgg) {
+      existingAgg.quantity += line.quantity;
+    } else {
+      aggregatedCards.set(scryfallId, {
+        cardName,
+        quantity: line.quantity,
+        setCode: line.set || resolved?.set || null,
+        collectorNumber: line.collectorNumber || resolved?.collectorNumber || null,
+        manaCost: resolved?.manaCost || null,
+        typeLine: resolved?.typeLine || null,
+        imageUri: resolved?.imageUri || null,
+      });
+    }
+  }
 
+  const cardIds = Array.from(aggregatedCards.keys());
+  const existingRecords = await prisma.collectionCard.findMany({
+    where: {
+      userId,
+      cardScryfallId: { in: cardIds },
+    },
+  });
+
+  const existingMap = new Map(existingRecords.map((r) => [r.cardScryfallId, r]));
+
+  const toCreate: {
+    userId: string;
+    cardScryfallId: string;
+    cardName: string;
+    quantity: number;
+    setCode?: string | null;
+    collectorNumber?: string | null;
+    manaCost?: string | null;
+    typeLine?: string | null;
+    imageUri?: string | null;
+  }[] = [];
+
+  const toUpdate: {
+    id: string;
+    quantity: number;
+    imageUri?: string | null;
+  }[] = [];
+
+  for (const [scryfallId, item] of aggregatedCards.entries()) {
+    const existing = existingMap.get(scryfallId);
     if (existing) {
-      await prisma.collectionCard.update({
-        where: { id: existing.id },
-        data: {
-          quantity: existing.quantity + line.quantity,
-          imageUri: resolved?.imageUri || existing.imageUri,
-        },
+      toUpdate.push({
+        id: existing.id,
+        quantity: existing.quantity + item.quantity,
+        imageUri: item.imageUri || existing.imageUri,
       });
     } else {
-      await prisma.collectionCard.create({
-        data: {
-          userId,
-          cardScryfallId: scryfallId,
-          cardName,
-          quantity: line.quantity,
-          setCode: line.set || resolved?.set || null,
-          collectorNumber: line.collectorNumber || resolved?.collectorNumber || null,
-          manaCost: resolved?.manaCost || null,
-          typeLine: resolved?.typeLine || null,
-          imageUri: resolved?.imageUri || null,
-        },
+      toCreate.push({
+        userId,
+        cardScryfallId: scryfallId,
+        cardName: item.cardName,
+        quantity: item.quantity,
+        setCode: item.setCode,
+        collectorNumber: item.collectorNumber,
+        manaCost: item.manaCost,
+        typeLine: item.typeLine,
+        imageUri: item.imageUri,
       });
+    }
+  }
+
+  // Bulk insert all new cards in a single query
+  if (toCreate.length > 0) {
+    await prisma.collectionCard.createMany({
+      data: toCreate,
+    });
+  }
+
+  // Batch update existing cards in parallel transactions of 50
+  if (toUpdate.length > 0) {
+    const batchSize = 50;
+    for (let i = 0; i < toUpdate.length; i += batchSize) {
+      const chunk = toUpdate.slice(i, i + batchSize);
+      await prisma.$transaction(
+        chunk.map((c) =>
+          prisma.collectionCard.update({
+            where: { id: c.id },
+            data: {
+              quantity: c.quantity,
+              imageUri: c.imageUri,
+            },
+          })
+        )
+      );
     }
   }
 

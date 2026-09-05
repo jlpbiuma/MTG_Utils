@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
+    "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -27,10 +28,10 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tailwind-merge": "^3.6.0",
-    "zod": "^4.5.4"
+    "zod": "^4.5.4",
+    "@prisma/client": "^6.19.3"
   },
   "devDependencies": {
-    "@prisma/client": "^6.19.3",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.1",

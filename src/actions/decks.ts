@@ -31,49 +31,51 @@ async function getUserCollectionMap(userId: string): Promise<Map<string, number>
   return map;
 }
 
-/**
- * Fetches all decks for the current user and computes completion % against their collection.
- */
 export async function getDecksWithCompletion(): Promise<DeckWithCompletion[]> {
-  const userId = await getCurrentUserId();
+  try {
+    const userId = await getCurrentUserId();
 
-  const [decks, collectionMap] = await Promise.all([
-    prisma.deck.findMany({
-      where: { userId },
-      include: { cards: true },
-      orderBy: { updatedAt: "desc" },
-    }),
-    getUserCollectionMap(userId),
-  ]);
+    const [decks, collectionMap] = await Promise.all([
+      prisma.deck.findMany({
+        where: { userId },
+        include: { cards: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+      getUserCollectionMap(userId),
+    ]);
 
-  return decks.map((deck) => {
-    const totalCards = deck.cards.reduce((sum, c) => sum + c.quantity, 0);
-    const uniqueCards = deck.cards.length;
+    return decks.map((deck) => {
+      const totalCards = deck.cards.reduce((sum, c) => sum + c.quantity, 0);
+      const uniqueCards = deck.cards.length;
 
-    const ownedCards = deck.cards.reduce((sum, c) => {
-      const owned = collectionMap.get(c.cardScryfallId) || 0;
-      return sum + Math.min(owned, c.quantity);
-    }, 0);
+      const ownedCards = deck.cards.reduce((sum, c) => {
+        const owned = collectionMap.get(c.cardScryfallId) || 0;
+        return sum + Math.min(owned, c.quantity);
+      }, 0);
 
-    const missingCardsCount = Math.max(0, totalCards - ownedCards);
-    const completionPercentage =
-      totalCards > 0 ? Math.round((ownedCards / totalCards) * 1000) / 10 : 0;
+      const missingCardsCount = Math.max(0, totalCards - ownedCards);
+      const completionPercentage =
+        totalCards > 0 ? Math.round((ownedCards / totalCards) * 1000) / 10 : 0;
 
-    return {
-      id: deck.id,
-      userId: deck.userId,
-      name: deck.name,
-      format: deck.format,
-      description: deck.description,
-      createdAt: deck.createdAt,
-      updatedAt: deck.updatedAt,
-      totalCards,
-      uniqueCards,
-      ownedCards,
-      missingCardsCount,
-      completionPercentage,
-    };
-  });
+      return {
+        id: deck.id,
+        userId: deck.userId,
+        name: deck.name,
+        format: deck.format,
+        description: deck.description,
+        createdAt: deck.createdAt,
+        updatedAt: deck.updatedAt,
+        totalCards,
+        uniqueCards,
+        ownedCards,
+        missingCardsCount,
+        completionPercentage,
+      };
+    });
+  } catch (error) {
+    console.error("❌ Error in getDecksWithCompletion (Database query failed):", error);
+    throw error;
+  }
 }
 
 /**

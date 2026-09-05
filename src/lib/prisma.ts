@@ -4,6 +4,10 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+if (!process.env.DATABASE_URL) {
+  console.error("❌ CRITICAL: DATABASE_URL environment variable is not set! Ensure it is configured in your deployment settings (e.g. Netlify Environment Variables).");
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
@@ -11,3 +15,4 @@ export const prisma =
   });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
