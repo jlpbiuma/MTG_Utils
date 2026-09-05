@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Library,
   Search,
@@ -23,6 +23,10 @@ import {
   updateCollectionQuantity,
   deleteCollectionCard,
 } from "@/actions/collection";
+import { PriceProvider, PriceSummary } from "@/lib/pricing";
+import { PricingProviderSelector } from "@/components/pricing-provider-selector";
+import { PriceBadge } from "@/components/price-badge";
+import { normalizeCardName } from "@/lib/worker";
 
 interface CollectionItem {
   id: string;
@@ -45,6 +49,43 @@ interface CollectionViewProps {
 export function CollectionView({ initialCards, initialStats }: CollectionViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Dynamic pricing state
+  const [priceProvider, setPriceProvider] = useState<PriceProvider>("cardmarket");
+  const [priceSummary, setPriceSummary] = useState<PriceSummary | null>(null);
+  const [isLoadingPrices, setIsLoadingPrices] = useState(false);
+
+  const loadPrices = useCallback(
+    async (providerToLoad = priceProvider, bypassCache = false) => {
+      setIsLoadingPrices(true);
+      try {
+        const res = await fetch("/api/prices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "collection",
+            provider: providerToLoad,
+            bypassCache,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.summary) {
+            setPriceSummary(json.summary);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load collection prices:", err);
+      } finally {
+        setIsLoadingPrices(false);
+      }
+    },
+    [priceProvider]
+  );
+
+  useEffect(() => {
+    loadPrices(priceProvider, false);
+  }, [priceProvider, loadPrices]);
 
   const filteredCards = initialCards.filter((c) =>
     c.cardName.toLowerCase().includes(searchQuery.toLowerCase().trim())
@@ -130,6 +171,16 @@ export function CollectionView({ initialCards, initialStats }: CollectionViewPro
         </div>
       </div>
 
+      {/* Dynamic Pricing Selector & Total Collection Value */}
+      <PricingProviderSelector
+        currentProvider={priceProvider}
+        onProviderChange={(p) => setPriceProvider(p)}
+        onRefreshPrices={() => loadPrices(priceProvider, true)}
+        summary={priceSummary}
+        isLoading={isLoadingPrices}
+        showMissingNetValue={false}
+      />
+
       {/* Search and Filters */}
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -212,6 +263,18 @@ export function CollectionView({ initialCards, initialStats }: CollectionViewPro
                       {card.typeLine || "Card"}
                     </span>
                     <ManaCost manaCost={card.manaCost} />
+                  </div>
+
+                  {/* Price breakdown badge */}
+                  <div className="mt-3 pt-2 border-t border-slate-800/40 flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400 font-medium">Cotización:</span>
+                    <PriceBadge
+                      quote={
+                        priceSummary?.quotes[card.cardScryfallId] ||
+                        priceSummary?.quotes[normalizeCardName(card.cardName)]
+                      }
+                      showSubtotal={card.quantity > 1}
+                    />
                   </div>
                 </div>
 

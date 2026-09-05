@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -29,6 +29,10 @@ import {
   removeCardFromDeck,
 } from "@/actions/decks";
 import { addOrIncrementCard } from "@/actions/collection";
+import { PriceProvider, PriceSummary } from "@/lib/pricing";
+import { PricingProviderSelector } from "@/components/pricing-provider-selector";
+import { PriceBadge } from "@/components/price-badge";
+import { normalizeCardName } from "@/lib/worker";
 
 interface DeckDetailViewProps {
   initialDeck: DeckDetailWithStats;
@@ -38,6 +42,43 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
   const [filterMode, setFilterMode] = useState<"all" | "missing" | "owned">("all");
   const [activeBoard, setActiveBoard] = useState<"mainboard" | "sideboard">("mainboard");
   const [loadingCardId, setLoadingCardId] = useState<string | null>(null);
+
+  // Dynamic pricing state
+  const [priceProvider, setPriceProvider] = useState<PriceProvider>("cardmarket");
+  const [priceSummary, setPriceSummary] = useState<PriceSummary | null>(null);
+  const [isLoadingPrices, setIsLoadingPrices] = useState(false);
+
+  const loadPrices = useCallback(
+    async (providerToLoad = priceProvider, bypassCache = false) => {
+      setIsLoadingPrices(true);
+      try {
+        const res = await fetch("/api/prices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deckId: initialDeck.id,
+            provider: providerToLoad,
+            bypassCache,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.summary) {
+            setPriceSummary(json.summary);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load deck prices:", err);
+      } finally {
+        setIsLoadingPrices(false);
+      }
+    },
+    [initialDeck.id, priceProvider]
+  );
+
+  useEffect(() => {
+    loadPrices(priceProvider, false);
+  }, [priceProvider, loadPrices]);
 
   const mainboardCards = initialDeck.cards.filter((c) => !c.isSideboard);
   const sideboardCards = initialDeck.cards.filter((c) => c.isSideboard);
@@ -189,6 +230,16 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
           </div>
         </div>
       </div>
+
+      {/* Dynamic Pricing Selector & Net Totals */}
+      <PricingProviderSelector
+        currentProvider={priceProvider}
+        onProviderChange={(p) => setPriceProvider(p)}
+        onRefreshPrices={() => loadPrices(priceProvider, true)}
+        summary={priceSummary}
+        isLoading={isLoadingPrices}
+        showMissingNetValue={true}
+      />
 
       {/* Action Toolbar & Filters */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
@@ -359,8 +410,16 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
                     </div>
                   </div>
 
-                  {/* Right: Quantity controls & Delete */}
-                  <div className="flex items-center justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/60">
+                  {/* Right: Price Badge + Quantity controls & Delete */}
+                  <div className="flex items-center justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/60 flex-wrap sm:flex-nowrap">
+                    <PriceBadge
+                      quote={
+                        priceSummary?.quotes[card.cardScryfallId] ||
+                        priceSummary?.quotes[normalizeCardName(card.cardName)]
+                      }
+                      showSubtotal={true}
+                    />
+
                     <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-1 gap-2">
                       <Button
                         size="icon"
