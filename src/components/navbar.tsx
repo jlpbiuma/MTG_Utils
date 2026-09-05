@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Sparkles, Layers, Library, ShieldCheck } from "lucide-react";
-import { getCurrentUser } from "@/actions/auth";
+import { Sparkles, Layers, Library, LogIn, LogOut } from "lucide-react";
+import { getCurrentUser, signOutUser } from "@/actions/auth";
+import { Button } from "@/components/ui/button";
 
 export async function Navbar() {
   const user = await getCurrentUser();
@@ -42,11 +43,35 @@ export async function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-slate-800 bg-slate-900/60 text-xs text-slate-300">
-            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="hidden sm:inline font-mono">{user.email}</span>
-            <span className="sm:hidden font-mono">{user.name}</span>
-          </div>
+          {user.isAuthenticated ? (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-slate-800 bg-slate-900/60 text-xs text-slate-300">
+                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="hidden sm:inline font-mono">{user.email}</span>
+                <span className="sm:hidden font-mono">{user.name}</span>
+              </div>
+
+              <form action={signOutUser}>
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2.5 text-xs text-slate-400 hover:text-rose-300 hover:bg-rose-950/20 gap-1.5"
+                  title="Cerrar sesión"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Cerrar Sesión</span>
+                </Button>
+              </form>
+            </div>
+          ) : (
+            <Button asChild variant="mana" size="sm" className="gap-1.5">
+              <Link href="/login">
+                <LogIn className="h-3.5 w-3.5" />
+                Iniciar Sesión
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>

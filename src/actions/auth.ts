@@ -1,54 +1,141 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
 const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
 const DEMO_USER_EMAIL = "planeswalker@magic.io";
 
+export interface UserSessionState {
+  id: string;
+  email: string;
+  name: string;
+  isAuthenticated: boolean;
+}
+
+/**
+ * Returns the current authenticated user's ID from Supabase Auth.
+ * Falls back to demo user ID only if offline / dev fallback is needed.
+ */
 export async function getCurrentUserId(): Promise<string> {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get("mtg_user_id");
-  if (sessionCookie && sessionCookie.value) {
-    return sessionCookie.value;
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user && user.id) {
+      return user.id;
+    }
+  } catch (error) {
+    console.warn("Could not retrieve Supabase user:", error);
   }
+
   return DEMO_USER_ID;
 }
 
-export async function getCurrentUser(): Promise<{ id: string; email: string; name: string }> {
-  const cookieStore = await cookies();
-  const idCookie = cookieStore.get("mtg_user_id");
-  const emailCookie = cookieStore.get("mtg_user_email");
+/**
+ * Returns user details and authentication status.
+ */
+export async function getCurrentUser(): Promise<UserSessionState> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  const id = idCookie?.value || DEMO_USER_ID;
-  const email = emailCookie?.value || DEMO_USER_EMAIL;
+    if (user && user.id) {
+      const email = user.email || "";
+      return {
+        id: user.id,
+        email,
+        name: email.split("@")[0] || "Planeswalker",
+        isAuthenticated: true,
+      };
+    }
+  } catch (error) {
+    console.warn("Could not retrieve Supabase user:", error);
+  }
 
   return {
-    id,
-    email,
-    name: email.split("@")[0],
+    id: DEMO_USER_ID,
+    email: DEMO_USER_EMAIL,
+    name: "Invitado",
+    isAuthenticated: false,
   };
 }
 
-export async function setDevUserSession(userId: string, email: string): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.set("mtg_user_id", userId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
-  });
-  cookieStore.set("mtg_user_email", email, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+/**
+ * Logs in with Email and Password using Supabase Auth.
+ */
+export async function signInWithEmail(email: string, password: string): Promise<{ error?: string }> {
+  if (!email || !password) {
+    return { error: "Debes ingresar tu correo y contraseña." };
+  }
+
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath("/", "layout");
+    return {};
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : "Error inesperado al iniciar sesión." };
+  }
 }
 
-export async function clearUserSession(): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.delete("mtg_user_id");
-  cookieStore.delete("mtg_user_email");
+/**
+ * Registers a new user with Email and Password in Supabase Auth.
+ */
+export async function signUpWithEmail(
+  email: string,
+  password: string
+): Promise<{ error?: string; needsConfirmation?: boolean }> {
+  if (!email || !password) {
+    return { error: "Debes ingresar tu correo y contraseña." };
+  }
+
+  if (password.length < 6) {
+    return { error: "La contraseña debe tener al menos 6 caracteres." };
+  }
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+    });
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    // If Supabase has "Confirm email" enabled and no session was returned
+    if (data.user && !data.session) {
+      return { needsConfirmation: true };
+    }
+
+    revalidatePath("/", "layout");
+    return {};
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : "Error inesperado al registrar usuario." };
+  }
+}
+
+/**
+ * Signs out the current user and clears session cookies.
+ */
+export async function signOutUser() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  revalidatePath("/", "layout");
+  redirect("/login");
 }
