@@ -1,0 +1,61 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: mtg-utils-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      # By default inside Docker Compose network, use db service:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
+      - DIRECT_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
+      # Or override with Supabase credentials in .env
+    env_file:
+      - .env
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+      - ./public:/app/public
+      - ./package.json:/app/package.json
+      # Exclude node_modules and .next from host overwriting
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mtg-network
+
+  db:
+    image: postgres:16-alpine
+    container_name: mtg-utils-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mtg_utils
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mtg_utils"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mtg-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  mtg-network:
+    driver: bridge

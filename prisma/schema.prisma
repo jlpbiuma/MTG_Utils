@@ -1,0 +1,58 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Deck {
+  id          String     @id @default(uuid())
+  userId      String     @map("user_id")
+  name        String
+  format      String     @default("Commander")
+  description String?
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  cards       DeckCard[]
+
+  @@index([userId])
+  @@map("decks")
+}
+
+model DeckCard {
+  id             String  @id @default(uuid())
+  deckId         String  @map("deck_id")
+  cardScryfallId String  @map("card_scryfall_id")
+  cardName       String  @map("card_name")
+  quantity       Int     @default(1)
+  isSideboard    Boolean @default(false) @map("is_sideboard")
+  manaCost       String? @map("mana_cost")
+  typeLine       String? @map("type_line")
+  imageUri       String? @map("image_uri")
+  deck           Deck    @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@unique([deckId, cardScryfallId, isSideboard])
+  @@index([deckId])
+  @@map("deck_cards")
+}
+
+model CollectionCard {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  cardScryfallId  String   @map("card_scryfall_id")
+  cardName        String   @map("card_name")
+  quantity        Int      @default(1)
+  setCode         String?  @map("set_code")
+  collectorNumber String?  @map("collector_number")
+  manaCost        String?  @map("mana_cost")
+  typeLine        String?  @map("type_line")
+  imageUri        String?  @map("image_uri")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([userId, cardScryfallId])
+  @@index([userId])
+  @@map("user_collections")
+}
