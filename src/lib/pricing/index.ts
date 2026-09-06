@@ -12,13 +12,13 @@ const SCRYFALL_HEADERS = {
   "Content-Type": "application/json",
 };
 
-// In-memory cache for pricing data with 15-minute TTL
+// In-memory cache for pricing data with 3-day TTL
 interface CachedPriceEntry {
   quote: CardPriceQuote;
   timestamp: number;
 }
-const priceCache = new Map<string, CachedPriceEntry>();
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+export const priceCache = new Map<string, CachedPriceEntry>();
+export const CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days (259,200,000 ms)
 
 export interface CardToPrice {
   name: string;

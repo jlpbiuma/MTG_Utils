@@ -2,13 +2,14 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Trash2, ExternalLink, CheckCircle2, AlertCircle, Sparkles, Layers } from "lucide-react";
+import { Trash2, ExternalLink, CheckCircle2, AlertCircle, Sparkles, Layers, Pencil } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { DeckWithCompletion } from "@/lib/schemas";
 import { deleteDeck } from "@/actions/decks";
+import { EditDeckDialog } from "@/components/edit-deck-dialog";
 
 interface DeckCardItemProps {
   deck: DeckWithCompletion;
@@ -16,12 +17,15 @@ interface DeckCardItemProps {
 
 export function DeckCardItem({ deck }: DeckCardItemProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentName, setCurrentName] = useState(deck.name);
+  const [currentFormat, setCurrentFormat] = useState(deck.format);
+  const [currentDescription, setCurrentDescription] = useState(deck.description);
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!confirm(`¿Eliminar el mazo "${deck.name}" permanentemente?`)) {
+    if (!confirm(`¿Eliminar el mazo "${currentName}" permanentemente?`)) {
       return;
     }
 
@@ -52,25 +56,49 @@ export function DeckCardItem({ deck }: DeckCardItemProps) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <Badge variant="outline" className="bg-slate-950/60 text-[11px] font-mono border-slate-700 text-amber-300">
-            {deck.format}
+            {currentFormat}
           </Badge>
-          <button
-            onClick={handleDelete}
-            disabled={isDeleting}
-            title="Eliminar mazo"
-            className="text-slate-500 hover:text-rose-400 transition-colors p-1 -mr-1 rounded hover:bg-slate-800/60 opacity-60 group-hover:opacity-100"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+            <EditDeckDialog
+              deck={{
+                id: deck.id,
+                name: currentName,
+                format: currentFormat,
+                description: currentDescription,
+              }}
+              onUpdated={(updated) => {
+                setCurrentName(updated.name);
+                setCurrentFormat(updated.format);
+                setCurrentDescription(updated.description);
+              }}
+              trigger={
+                <button
+                  type="button"
+                  title="Editar mazo"
+                  className="text-slate-400 hover:text-amber-300 transition-colors p-1 rounded hover:bg-slate-800/60"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              }
+            />
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              title="Eliminar mazo"
+              className="text-slate-500 hover:text-rose-400 transition-colors p-1 rounded hover:bg-slate-800/60"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
 
         <CardTitle className="text-lg group-hover:text-amber-300 transition-colors line-clamp-1 mt-1">
-          {deck.name}
+          {currentName}
         </CardTitle>
 
-        {deck.description && (
+        {currentDescription && (
           <p className="text-xs text-slate-400 line-clamp-2 mt-1 min-h-[32px]">
-            {deck.description}
+            {currentDescription}
           </p>
         )}
       </CardHeader>

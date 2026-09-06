@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { EditDeckDialog } from "@/components/edit-deck-dialog";
+import { FloatingDeckControls } from "@/components/floating-deck-controls";
 import {
   ArrowLeft,
   Plus,
@@ -34,6 +37,7 @@ import {
   assignCardToDeck,
   unassignCardFromDeck,
   reassignCardToDeck,
+  deleteDeck,
 } from "@/actions/decks";
 import { addOrIncrementCard } from "@/actions/collection";
 import { PriceProvider, PriceSummary } from "@/lib/pricing";
@@ -48,6 +52,33 @@ interface DeckDetailViewProps {
 }
 
 export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
+  const router = useRouter();
+  const [deckInfo, setDeckInfo] = useState({
+    name: initialDeck.name,
+    format: initialDeck.format,
+    description: initialDeck.description,
+  });
+  const [isDeletingDeck, setIsDeletingDeck] = useState(false);
+
+  const handleDeleteDeck = async () => {
+    if (
+      !confirm(
+        `¿Eliminar permanentemente el mazo "${deckInfo.name}"? Esta acción no se puede deshacer.`
+      )
+    ) {
+      return;
+    }
+
+    setIsDeletingDeck(true);
+    try {
+      await deleteDeck(initialDeck.id);
+      router.push("/decks");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Error al eliminar el mazo");
+      setIsDeletingDeck(false);
+    }
+  };
+
   const [filterMode, setFilterMode] = useState<"all" | "missing" | "owned">("all");
   const [activeBoard, setActiveBoard] = useState<"mainboard" | "sideboard">("mainboard");
   const [loadingCardId, setLoadingCardId] = useState<string | null>(null);
@@ -440,7 +471,7 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="bg-amber-500/10 text-amber-300 border-amber-500/30 font-mono">
-                {initialDeck.format}
+                {deckInfo.format}
               </Badge>
               {isComplete && (
                 <Badge variant="success" className="gap-1 font-semibold">
@@ -450,12 +481,40 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
               )}
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-              {initialDeck.name}
-            </h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
+                {deckInfo.name}
+              </h1>
 
-            {initialDeck.description && (
-              <p className="text-sm text-slate-400 max-w-2xl">{initialDeck.description}</p>
+              <div className="flex items-center gap-2">
+                <EditDeckDialog
+                  deck={{
+                    id: initialDeck.id,
+                    name: deckInfo.name,
+                    format: deckInfo.format,
+                    description: deckInfo.description,
+                  }}
+                  onUpdated={(updated) => {
+                    setDeckInfo((prev) => ({ ...prev, ...updated }));
+                  }}
+                />
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleDeleteDeck}
+                  disabled={isDeletingDeck}
+                  className="h-8 px-2.5 text-xs text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 border border-slate-800 hover:border-rose-800/50"
+                  title="Eliminar este mazo permanentemente"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1 text-slate-500 hover:text-rose-400" />
+                  Eliminar
+                </Button>
+              </div>
+            </div>
+
+            {deckInfo.description && (
+              <p className="text-sm text-slate-400 max-w-2xl">{deckInfo.description}</p>
             )}
           </div>
 
@@ -776,6 +835,25 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
             {sortedCards.map((card) => renderCardRow(card))}
           </div>
         </div>
+      )}
+
+      {/* Floating Action Button for Sorting and Grouping */}
+      {filteredCards.length > 0 && (
+        <FloatingDeckControls
+          sortField={sortField}
+          sortDirection={sortDirection}
+          onSortChange={(f, d) => {
+            setSortField(f);
+            setSortDirection(d);
+          }}
+          showStatusOption={true}
+          isGroupedByType={isGroupedByType}
+          onGroupingToggle={setIsGroupedByType}
+          onExpandAll={expandAll}
+          onCollapseAll={collapseAll}
+          hasSections={groupedSections.length > 1}
+          totalCards={filteredCards.length}
+        />
       )}
     </div>
   );
