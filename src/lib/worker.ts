@@ -49,17 +49,29 @@ export async function processPendingCardsWorker(options?: {
   };
 
   try {
-    // 1. Find cards in deck_cards and user_collections that are missing images
+    // 1. Find cards in deck_cards and user_collections that are missing images or type lines
     const [pendingDeckCards, pendingCollectionCards] = await Promise.all([
       prisma.deckCard.findMany({
-        where: { imageUri: null },
+        where: {
+          OR: [
+            { imageUri: null },
+            { typeLine: null },
+            { cardScryfallId: { startsWith: "pending:" } },
+          ],
+        },
         take: maxTotal,
-        select: { id: true, cardName: true, deckId: true },
+        select: { id: true, cardName: true, deckId: true, isSideboard: true, quantity: true },
       }),
       prisma.collectionCard.findMany({
-        where: { imageUri: null },
+        where: {
+          OR: [
+            { imageUri: null },
+            { typeLine: null },
+            { cardScryfallId: { startsWith: "pending:" } },
+          ],
+        },
         take: maxTotal,
-        select: { id: true, cardName: true, userId: true },
+        select: { id: true, cardName: true, userId: true, quantity: true },
       }),
     ]);
 
@@ -106,7 +118,6 @@ export async function processPendingCardsWorker(options?: {
       cacheMap.set(record.normalizedName, record);
     }
 
-
     const uncachedNames: string[] = [];
     for (const originalName of distinctNames) {
       const norm = normalizeCardName(originalName);
@@ -117,37 +128,88 @@ export async function processPendingCardsWorker(options?: {
       }
     }
 
-    // 3. Apply cached data to pending cards in database
+    // 3. Apply cached data to pending cards in database safely
     if (cachedRecords.length > 0) {
       for (const deckCard of pendingDeckCards) {
         const cached = cacheMap.get(normalizeCardName(deckCard.cardName));
         if (cached) {
-          await prisma.deckCard.update({
-            where: { id: deckCard.id },
-            data: {
-              imageUri: cached.imageUri,
-              manaCost: cached.manaCost,
-              typeLine: cached.typeLine,
-              cardScryfallId: cached.id,
-            },
-          }).catch(() => {
-            // Ignore unique constraint collisions if any
-          });
+          try {
+            const existing = await prisma.deckCard.findUnique({
+              where: {
+                deckId_cardScryfallId_isSideboard: {
+                  deckId: deckCard.deckId,
+                  cardScryfallId: cached.id,
+                  isSideboard: deckCard.isSideboard,
+                },
+              },
+            });
+
+            if (existing && existing.id !== deckCard.id) {
+              await prisma.deckCard.update({
+                where: { id: existing.id },
+                data: {
+                  quantity: existing.quantity + deckCard.quantity,
+                  imageUri: existing.imageUri || cached.imageUri,
+                  manaCost: existing.manaCost || cached.manaCost,
+                  typeLine: existing.typeLine || cached.typeLine,
+                },
+              });
+              await prisma.deckCard.delete({ where: { id: deckCard.id } });
+            } else {
+              await prisma.deckCard.update({
+                where: { id: deckCard.id },
+                data: {
+                  imageUri: cached.imageUri,
+                  manaCost: cached.manaCost,
+                  typeLine: cached.typeLine,
+                  cardScryfallId: cached.id,
+                },
+              });
+            }
+          } catch (e) {
+            console.warn(`Could not apply cache to deck card ${deckCard.id}:`, e);
+          }
         }
       }
 
       for (const collCard of pendingCollectionCards) {
         const cached = cacheMap.get(normalizeCardName(collCard.cardName));
         if (cached) {
-          await prisma.collectionCard.update({
-            where: { id: collCard.id },
-            data: {
-              imageUri: cached.imageUri,
-              manaCost: cached.manaCost,
-              typeLine: cached.typeLine,
-              cardScryfallId: cached.id,
-            },
-          }).catch(() => {});
+          try {
+            const existing = await prisma.collectionCard.findUnique({
+              where: {
+                userId_cardScryfallId: {
+                  userId: collCard.userId,
+                  cardScryfallId: cached.id,
+                },
+              },
+            });
+
+            if (existing && existing.id !== collCard.id) {
+              await prisma.collectionCard.update({
+                where: { id: existing.id },
+                data: {
+                  quantity: existing.quantity + collCard.quantity,
+                  imageUri: existing.imageUri || cached.imageUri,
+                  manaCost: existing.manaCost || cached.manaCost,
+                  typeLine: existing.typeLine || cached.typeLine,
+                },
+              });
+              await prisma.collectionCard.delete({ where: { id: collCard.id } });
+            } else {
+              await prisma.collectionCard.update({
+                where: { id: collCard.id },
+                data: {
+                  imageUri: cached.imageUri,
+                  manaCost: cached.manaCost,
+                  typeLine: cached.typeLine,
+                  cardScryfallId: cached.id,
+                },
+              });
+            }
+          } catch (e) {
+            console.warn(`Could not apply cache to collection card ${collCard.id}:`, e);
+          }
         }
       }
     }
@@ -232,33 +294,114 @@ export async function processPendingCardsWorker(options?: {
               },
             }).catch((err) => console.warn("CardCatalog upsert error:", err));
 
-            // Update matching pending deck cards
-            await prisma.deckCard.updateMany({
-              where: {
-                cardName: { equals: card.name, mode: "insensitive" },
-                imageUri: null,
-              },
-              data: {
-                imageUri,
-                manaCost,
-                typeLine,
-                cardScryfallId: card.id,
-              },
-            });
+            // Update matching pending deck cards safely
+            try {
+              const pendingDcs = await prisma.deckCard.findMany({
+                where: {
+                  cardName: { equals: card.name, mode: "insensitive" },
+                  OR: [
+                    { imageUri: null },
+                    { typeLine: null },
+                    { cardScryfallId: { startsWith: "pending:" } },
+                  ],
+                },
+              });
 
-            // Update matching pending collection cards
-            await prisma.collectionCard.updateMany({
-              where: {
-                cardName: { equals: card.name, mode: "insensitive" },
-                imageUri: null,
-              },
-              data: {
-                imageUri,
-                manaCost,
-                typeLine,
-                cardScryfallId: card.id,
-              },
-            });
+              for (const dc of pendingDcs) {
+                try {
+                  const existing = await prisma.deckCard.findUnique({
+                    where: {
+                      deckId_cardScryfallId_isSideboard: {
+                        deckId: dc.deckId,
+                        cardScryfallId: card.id,
+                        isSideboard: dc.isSideboard,
+                      },
+                    },
+                  });
+
+                  if (existing && existing.id !== dc.id) {
+                    await prisma.deckCard.update({
+                      where: { id: existing.id },
+                      data: {
+                        quantity: existing.quantity + dc.quantity,
+                        imageUri: existing.imageUri || imageUri,
+                        manaCost: existing.manaCost || manaCost,
+                        typeLine: existing.typeLine || typeLine,
+                      },
+                    });
+                    await prisma.deckCard.delete({ where: { id: dc.id } });
+                  } else {
+                    await prisma.deckCard.update({
+                      where: { id: dc.id },
+                      data: {
+                        imageUri,
+                        manaCost,
+                        typeLine,
+                        cardScryfallId: card.id,
+                      },
+                    });
+                  }
+                } catch (dcErr) {
+                  console.warn(`Could not update deck card ${dc.id}:`, dcErr);
+                }
+              }
+            } catch (err) {
+              console.warn(`Error querying pending deck cards for ${card.name}:`, err);
+            }
+
+            // Update matching pending collection cards safely
+            try {
+              const pendingCcs = await prisma.collectionCard.findMany({
+                where: {
+                  cardName: { equals: card.name, mode: "insensitive" },
+                  OR: [
+                    { imageUri: null },
+                    { typeLine: null },
+                    { cardScryfallId: { startsWith: "pending:" } },
+                  ],
+                },
+              });
+
+              for (const cc of pendingCcs) {
+                try {
+                  const existing = await prisma.collectionCard.findUnique({
+                    where: {
+                      userId_cardScryfallId: {
+                        userId: cc.userId,
+                        cardScryfallId: card.id,
+                      },
+                    },
+                  });
+
+                  if (existing && existing.id !== cc.id) {
+                    await prisma.collectionCard.update({
+                      where: { id: existing.id },
+                      data: {
+                        quantity: existing.quantity + cc.quantity,
+                        imageUri: existing.imageUri || imageUri,
+                        manaCost: existing.manaCost || manaCost,
+                        typeLine: existing.typeLine || typeLine,
+                      },
+                    });
+                    await prisma.collectionCard.delete({ where: { id: cc.id } });
+                  } else {
+                    await prisma.collectionCard.update({
+                      where: { id: cc.id },
+                      data: {
+                        imageUri,
+                        manaCost,
+                        typeLine,
+                        cardScryfallId: card.id,
+                      },
+                    });
+                  }
+                } catch (ccErr) {
+                  console.warn(`Could not update collection card ${cc.id}:`, ccErr);
+                }
+              }
+            } catch (err) {
+              console.warn(`Error querying pending collection cards for ${card.name}:`, err);
+            }
 
             result.resolvedFromScryfall++;
           }

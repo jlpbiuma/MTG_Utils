@@ -32,7 +32,7 @@ export async function getCurrentUserId(): Promise<string> {
     console.warn("Could not retrieve Supabase user:", error);
   }
 
-  return DEMO_USER_ID;
+  return process.env.DEV_USER_ID || DEMO_USER_ID;
 }
 
 /**

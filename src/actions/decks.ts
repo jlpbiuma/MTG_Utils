@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "./auth";
+import { normalizeCardName } from "@/lib/card-utils";
 import {
   DeckCreateInput,
   DeckCreateSchema,
@@ -34,7 +35,7 @@ async function getUserCollectionMap(userId: string): Promise<CollectionLookupMap
 
   for (const item of collection) {
     byId.set(item.cardScryfallId, item.quantity);
-    const norm = item.cardName.toLowerCase().trim().split(" // ")[0];
+    const norm = normalizeCardName(item.cardName);
     byName.set(norm, (byName.get(norm) || 0) + item.quantity);
   }
 
@@ -59,7 +60,7 @@ export async function getDecksWithCompletion(): Promise<DeckWithCompletion[]> {
       const uniqueCards = deck.cards.length;
 
       const ownedCards = deck.cards.reduce((sum, c) => {
-        const norm = c.cardName.toLowerCase().trim().split(" // ")[0];
+        const norm = normalizeCardName(c.cardName);
         const owned = collectionMaps.byId.get(c.cardScryfallId) || collectionMaps.byName.get(norm) || 0;
         return sum + Math.min(owned, c.quantity);
       }, 0);
@@ -109,6 +110,125 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
   ]);
 
   if (!deck) return null;
+
+  // 0. Auto-enrich any deck cards missing typeLine or pending Scryfall enrichment
+  const cardsNeedingEnrichment = deck.cards.filter(
+    (c) => !c.typeLine || c.cardScryfallId.startsWith("pending:")
+  );
+
+  if (cardsNeedingEnrichment.length > 0) {
+    try {
+      // Step A: Check CardCatalog for cached metadata
+      const normNames = Array.from(
+        new Set(cardsNeedingEnrichment.map((c) => normalizeCardName(c.cardName)))
+      );
+      const catalogRecords = await prisma.cardCatalog.findMany({
+        where: { normalizedName: { in: normNames } },
+      });
+      const catalogMap = new Map(catalogRecords.map((r) => [r.normalizedName, r]));
+
+      const stillMissingNames: string[] = [];
+
+      for (const dc of cardsNeedingEnrichment) {
+        const norm = normalizeCardName(dc.cardName);
+        const cached = catalogMap.get(norm);
+        if (cached && cached.typeLine) {
+          dc.typeLine = cached.typeLine;
+          dc.manaCost = dc.manaCost || cached.manaCost;
+          dc.imageUri = dc.imageUri || cached.imageUri;
+          if (dc.cardScryfallId.startsWith("pending:") && cached.id) {
+            dc.cardScryfallId = cached.id;
+          }
+          await prisma.deckCard.update({
+            where: { id: dc.id },
+            data: {
+              typeLine: cached.typeLine,
+              manaCost: dc.manaCost,
+              imageUri: dc.imageUri,
+              cardScryfallId: dc.cardScryfallId,
+            },
+          }).catch(() => {});
+        } else {
+          stillMissingNames.push(dc.cardName);
+        }
+      }
+
+      // Step B: If any are still missing, fetch in bulk from Scryfall
+      if (stillMissingNames.length > 0) {
+        const uniqueNames = Array.from(new Set(stillMissingNames));
+        for (let i = 0; i < uniqueNames.length; i += 75) {
+          const batch = uniqueNames.slice(i, i + 75);
+          const scryfallRes = await fetch("https://api.scryfall.com/cards/collection", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "User-Agent": "MTGUtils/1.0",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({ identifiers: batch.map((name) => ({ name })) }),
+          });
+
+          if (scryfallRes.ok) {
+            const scryfallData = await scryfallRes.json();
+            const foundCards: any[] = scryfallData.data || [];
+
+            for (const card of foundCards) {
+              const imageUri =
+                card.image_uris?.normal ||
+                card.image_uris?.small ||
+                card.card_faces?.[0]?.image_uris?.normal ||
+                null;
+              const manaCost = card.mana_cost ?? card.card_faces?.[0]?.mana_cost ?? null;
+              const typeLine = card.type_line ?? card.card_faces?.[0]?.type_line ?? null;
+              const norm = normalizeCardName(card.name);
+
+              await prisma.cardCatalog.upsert({
+                where: { normalizedName: norm },
+                update: {
+                  imageUri,
+                  manaCost,
+                  typeLine,
+                  setCode: card.set ?? null,
+                  collectorNumber: card.collector_number ?? null,
+                },
+                create: {
+                  id: card.id,
+                  name: card.name,
+                  normalizedName: norm,
+                  imageUri,
+                  manaCost,
+                  typeLine,
+                  setCode: card.set ?? null,
+                  collectorNumber: card.collector_number ?? null,
+                },
+              }).catch(() => {});
+
+              for (const dc of deck.cards) {
+                if (normalizeCardName(dc.cardName) === norm) {
+                  dc.typeLine = typeLine;
+                  dc.manaCost = manaCost;
+                  dc.imageUri = imageUri;
+                  dc.cardScryfallId = card.id;
+
+                  await prisma.deckCard.update({
+                    where: { id: dc.id },
+                    data: {
+                      typeLine,
+                      manaCost,
+                      imageUri,
+                      cardScryfallId: card.id,
+                    },
+                  }).catch(() => {});
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (enrichErr) {
+      console.warn("Could not enrich deck cards in getDeckDetail:", enrichErr);
+    }
+  }
 
   // 1. Fetch assigned_quantity for all cards in this deck directly from SQL (immune to in-memory DMMF caching)
   let thisDeckAssignments: Map<string, number> = new Map();

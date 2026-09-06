@@ -32,11 +32,27 @@ describe("Card Type Categorization & Grouping", () => {
       expect(getCardCategory("Tierra básica — Montaña")).toBe("lands");
     });
 
-    it("falls back to other for unknown or missing types", () => {
+    it("falls back to other for unknown or missing types when cardName is unknown or missing", () => {
       expect(getCardCategory(null)).toBe("other");
       expect(getCardCategory(undefined)).toBe("other");
       expect(getCardCategory("")).toBe("other");
       expect(getCardCategory("Conspiracy")).toBe("other");
+      expect(getCardCategory(null, "Unknown Card 12345")).toBe("other");
+    });
+
+    it("uses cardName heuristics to categorize basic and ubiquitous lands when typeLine is missing", () => {
+      expect(getCardCategory(null, "Island")).toBe("lands");
+      expect(getCardCategory(null, "Mountain")).toBe("lands");
+      expect(getCardCategory(null, "Plains")).toBe("lands");
+      expect(getCardCategory(null, "Swamp")).toBe("lands");
+      expect(getCardCategory(null, "Forest")).toBe("lands");
+      expect(getCardCategory(null, "Wastes")).toBe("lands");
+      expect(getCardCategory(null, "Snow-Covered Island")).toBe("lands");
+      expect(getCardCategory(null, "Command Tower")).toBe("lands");
+      expect(getCardCategory(null, "Reliquary Tower")).toBe("lands");
+      expect(getCardCategory(null, "Izzet Boilerworks")).toBe("lands");
+      expect(getCardCategory(null, "Spara's Headquarters")).toBe("lands");
+      expect(getCardCategory(null, "Evolving Wilds")).toBe("lands");
     });
   });
 
@@ -172,6 +188,34 @@ describe("Card Type Categorization & Grouping", () => {
       expect(instantSection.missingCards).toBe(0);
       expect(instantSection.sectionMissingPrice).toBe(0);
       expect(instantSection.sectionTotalPrice).toBe(10); // 2.5 * 4 = 10
+    });
+
+    it("groups lands using cardName heuristics when typeLine is missing/null", () => {
+      const cards = [
+        {
+          cardName: "Island",
+          cardScryfallId: "pending:island",
+          typeLine: null,
+          quantity: 10,
+          ownedInCollection: 10,
+          missingCount: 0,
+        },
+        {
+          cardName: "Command Tower",
+          cardScryfallId: "pending:command-tower",
+          typeLine: null,
+          quantity: 1,
+          ownedInCollection: 1,
+          missingCount: 0,
+        },
+      ];
+
+      const sections = groupCardsByType(cards, mockPriceSummary);
+      expect(sections.length).toBe(1);
+      expect(sections[0].key).toBe("lands");
+      expect(sections[0].label).toBe("Tierras");
+      expect(sections[0].totalCards).toBe(11);
+      expect(sections[0].uniqueCards).toBe(2);
     });
   });
 });

@@ -44,22 +44,66 @@ export const CARD_TYPE_GROUPS: Record<CardTypeCategory, CardTypeGroupInfo> = {
 };
 
 /**
- * Categorizes an MTG card based on its type_line.
+ * Categorizes an MTG card based on its type_line, with intelligent fallback
+ * heuristics based on card name for basic and common lands when type_line is missing.
  * Follows MTG convention where creature types take precedence (e.g. Artifact Creatures -> Criaturas).
  */
-export function getCardCategory(typeLine?: string | null): CardTypeCategory {
-  if (!typeLine) return "other";
-  const lower = typeLine.toLowerCase();
+export function getCardCategory(
+  typeLine?: string | null,
+  cardName?: string | null
+): CardTypeCategory {
+  if (typeLine) {
+    const lower = typeLine.toLowerCase();
 
-  // Creature takes precedence for Artifact Creatures / Enchantment Creatures
-  if (lower.includes("creature") || lower.includes("criatura")) return "creatures";
-  if (lower.includes("planeswalker")) return "planeswalkers";
-  if (lower.includes("instant") || lower.includes("instantáneo")) return "instants";
-  if (lower.includes("sorcery") || lower.includes("conjuro")) return "sorceries";
-  if (lower.includes("artifact") || lower.includes("artefacto")) return "artifacts";
-  if (lower.includes("enchantment") || lower.includes("encantamiento")) return "enchantments";
-  if (lower.includes("battle") || lower.includes("batalla")) return "battles";
-  if (lower.includes("land") || lower.includes("tierra")) return "lands";
+    // Creature takes precedence for Artifact Creatures / Enchantment Creatures
+    if (lower.includes("creature") || lower.includes("criatura")) return "creatures";
+    if (lower.includes("planeswalker")) return "planeswalkers";
+    if (lower.includes("instant") || lower.includes("instantáneo")) return "instants";
+    if (lower.includes("sorcery") || lower.includes("conjuro")) return "sorceries";
+    if (lower.includes("artifact") || lower.includes("artefacto")) return "artifacts";
+    if (lower.includes("enchantment") || lower.includes("encantamiento")) return "enchantments";
+    if (lower.includes("battle") || lower.includes("batalla")) return "battles";
+    if (lower.includes("land") || lower.includes("tierra")) return "lands";
+  }
+
+  // Intelligent fallback heuristics based on cardName when typeLine is not yet populated
+  if (cardName) {
+    const lowerName = cardName.toLowerCase().trim();
+
+    // Basic lands
+    if (
+      lowerName === "plains" ||
+      lowerName === "island" ||
+      lowerName === "swamp" ||
+      lowerName === "mountain" ||
+      lowerName === "forest" ||
+      lowerName === "wastes" ||
+      lowerName.startsWith("snow-covered ")
+    ) {
+      return "lands";
+    }
+
+    // Ubiquitous MTG lands
+    if (
+      lowerName.includes("command tower") ||
+      lowerName.includes("reliquary tower") ||
+      lowerName.includes("boilerworks") ||
+      lowerName.includes("sanctuary") ||
+      lowerName.includes("headquarters") ||
+      lowerName.includes("cliffs") ||
+      lowerName.includes("evolving wilds") ||
+      lowerName.includes("terramorphic expanse") ||
+      lowerName.includes("fabled passage") ||
+      lowerName.includes("prismatic vista") ||
+      lowerName.includes("city of brass") ||
+      lowerName.includes("mana confluence") ||
+      lowerName.includes("reflecting pool") ||
+      lowerName.includes("path of ancestry") ||
+      lowerName.includes("exotic orchard")
+    ) {
+      return "lands";
+    }
+  }
 
   return "other";
 }
@@ -96,7 +140,7 @@ export function groupCardsByType<
   const buckets = new Map<CardTypeCategory, T[]>();
 
   for (const card of cards) {
-    const cat = getCardCategory(card.typeLine);
+    const cat = getCardCategory(card.typeLine, card.cardName);
     const list = buckets.get(cat) || [];
     list.push(card);
     buckets.set(cat, list);
