@@ -96,7 +96,7 @@ export async function getDecksWithCompletion(): Promise<DeckWithCompletion[]> {
 export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats | null> {
   const userId = await getCurrentUserId();
 
-  const [deck, collectionMaps, allAssignedDeckCards] = await Promise.all([
+  const [deck, collectionMaps] = await Promise.all([
     prisma.deck.findFirst({
       where: { id: deckId, userId },
       include: {
@@ -106,7 +106,21 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
       },
     }),
     getUserCollectionMap(userId),
-    prisma.deckCard.findMany({
+  ]);
+
+  if (!deck) return null;
+
+  let allAssignedDeckCards: Array<{
+    id: string;
+    cardScryfallId: string;
+    cardName: string;
+    assignedQuantity: number;
+    deckId: string;
+    deck: { id: string; name: string };
+  }> = [];
+
+  try {
+    allAssignedDeckCards = await prisma.deckCard.findMany({
       where: {
         deck: { userId },
         assignedQuantity: { gt: 0 },
@@ -116,10 +130,28 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
           select: { id: true, name: true },
         },
       },
-    }),
-  ]);
-
-  if (!deck) return null;
+    });
+  } catch (err) {
+    console.warn("Retrying deckCard assignment query with in-memory filter:", err);
+    try {
+      const rawDeckCards = await prisma.deckCard.findMany({
+        where: { deck: { userId } },
+        include: {
+          deck: {
+            select: { id: true, name: true },
+          },
+        },
+      });
+      allAssignedDeckCards = rawDeckCards
+        .filter((c) => ((c as any).assignedQuantity ?? 0) > 0)
+        .map((c) => ({
+          ...c,
+          assignedQuantity: (c as any).assignedQuantity ?? 0,
+        })) as typeof allAssignedDeckCards;
+    } catch (fallbackErr) {
+      console.warn("Fallback assignment query error:", fallbackErr);
+    }
+  }
 
   // Build lookup of assignments across all decks
   // key: normalizedName or scryfallId -> array of { deckId, deckName, quantity, cardId }
@@ -127,6 +159,7 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
     string,
     Array<{ deckId: string; deckName: string; quantity: number; cardId: string }>
   >();
+
 
   for (const ac of allAssignedDeckCards) {
     const norm = ac.cardName.toLowerCase().trim().split(" // ")[0];
@@ -398,19 +431,21 @@ export async function assignCardToDeck(deckCardId: string, quantityToAssign: num
   const ownedInCollection = collectionCards.reduce((sum, c) => sum + c.quantity, 0);
 
   // Check total assigned across all decks
-  const allAssigned = await prisma.deckCard.findMany({
+  const matchingCards = await prisma.deckCard.findMany({
     where: {
       deck: { userId },
       OR: [
         { cardScryfallId: card.cardScryfallId },
         { cardName: { equals: card.cardName, mode: "insensitive" } },
       ],
-      assignedQuantity: { gt: 0 },
     },
   });
 
-  const totalAssigned = allAssigned.reduce((sum, c) => sum + c.assignedQuantity, 0);
+  const totalAssigned = matchingCards
+    .filter((c) => ((c as any).assignedQuantity ?? 0) > 0)
+    .reduce((sum, c) => sum + ((c as any).assignedQuantity ?? 0), 0);
   const availableToAssign = Math.max(0, ownedInCollection - totalAssigned);
+
 
   if (availableToAssign <= 0) {
     throw new Error("No hay copias libres disponibles en tu colección física para asignar.");
