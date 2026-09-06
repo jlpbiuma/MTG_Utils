@@ -1,10 +1,32 @@
 services:
-  app:
+  backend:
     build:
-      context: .
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mtg-utils-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
+      - DIRECT_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mtg-network
+
+  frontend:
+    build:
+      context: ./frontend
       dockerfile: Dockerfile
       target: dev
-    container_name: mtg-utils-app
+    container_name: mtg-utils-frontend
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -12,23 +34,19 @@ services:
       - NODE_ENV=development
       - PORT=3000
       - HOSTNAME=0.0.0.0
-      # By default inside Docker Compose network, use db service:
+      - BACKEND_URL=http://backend:8000
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
       - DIRECT_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
-      # Or override with Supabase credentials in .env
     env_file:
-      - .env
+      - ./frontend/.env
     volumes:
-      - ./src:/app/src
-      - ./prisma:/app/prisma
-      - ./public:/app/public
-      - ./package.json:/app/package.json
-      # Exclude node_modules and .next from host overwriting
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/package.json:/app/package.json
       - /app/node_modules
       - /app/.next
     depends_on:
-      db:
-        condition: service_healthy
+      - backend
     networks:
       - mtg-network
 
