@@ -206,6 +206,18 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
   const sortedCards = sortCards(filteredCards, sortField, sortDirection, priceSummary);
   const groupedSections = groupCardsByType(sortedCards, priceSummary);
 
+  const collapseAll = () => {
+    const allCollapsed: Record<string, boolean> = {};
+    groupedSections.forEach((s) => {
+      allCollapsed[s.key] = true;
+    });
+    setCollapsedSections(allCollapsed);
+  };
+
+  const expandAll = () => {
+    setCollapsedSections({});
+  };
+
   const isComplete = initialDeck.totalCards > 0 && initialDeck.missingCardsCount === 0;
 
   const renderCardRow = (card: DeckCardWithOwnership) => {
@@ -528,36 +540,8 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
           </button>
         </div>
 
-        {/* Filters, View Toggle and Add Card */}
+        {/* Filters and Add Card */}
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-          {/* View Mode Toggle: Por Tipo vs Lista Continua */}
-          <div className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-lg border border-slate-800 text-xs">
-            <button
-              onClick={() => setIsGroupedByType(true)}
-              className={`px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
-                isGroupedByType
-                  ? "bg-amber-500/20 text-amber-300 font-medium"
-                  : "text-slate-400 hover:text-white"
-              }`}
-              title="Agrupar cartas por tipo (Criaturas, Artefactos, Tierras...)"
-            >
-              <FolderTree className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Por Tipo</span>
-            </button>
-            <button
-              onClick={() => setIsGroupedByType(false)}
-              className={`px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
-                !isGroupedByType
-                  ? "bg-slate-800 text-white font-medium"
-                  : "text-slate-400 hover:text-white"
-              }`}
-              title="Lista continua sin agrupar"
-            >
-              <AlignJustify className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Lista Continua</span>
-            </button>
-          </div>
-
           <div className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-lg border border-slate-800 text-xs">
             <button
               onClick={() => setFilterMode("all")}
@@ -600,18 +584,83 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
         </div>
       </div>
 
-      {/* Interactive Sorting Bar */}
+      {/* Interactive Sorting & Grouping Bar */}
       {filteredCards.length > 0 && (
-        <div className="px-1">
-          <CardSortingBar
-            currentField={sortField}
-            currentDirection={sortDirection}
-            onSortChange={(f, d) => {
-              setSortField(f);
-              setSortDirection(d);
-            }}
-            showStatusOption={true}
-          />
+        <div className="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800/90 backdrop-blur-md shadow-lg flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          {/* Left: Sorting options */}
+          <div className="flex-1">
+            <CardSortingBar
+              currentField={sortField}
+              currentDirection={sortDirection}
+              onSortChange={(f, d) => {
+                setSortField(f);
+                setSortDirection(d);
+              }}
+              showStatusOption={true}
+            />
+          </div>
+
+          {/* Right: Highly visible Grouping Parameter */}
+          <div className="flex items-center gap-3 border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-800/80 shrink-0 flex-wrap sm:flex-nowrap">
+            <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5 uppercase tracking-wider">
+              <FolderTree className="h-4 w-4 text-amber-400" />
+              Agrupar por:
+            </span>
+
+            <div className="inline-flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 shadow-inner">
+              <button
+                type="button"
+                onClick={() => setIsGroupedByType(true)}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  isGroupedByType
+                    ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 ring-1 ring-amber-400"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="Agrupar cartas por Criaturas, Artefactos, Conjuros, Tierras, etc."
+              >
+                <FolderTree className="h-3.5 w-3.5" />
+                <span>Tipo de Carta</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsGroupedByType(false)}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  !isGroupedByType
+                    ? "bg-slate-800 text-white shadow-sm ring-1 ring-slate-700"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="Mostrar todas las cartas en una lista continua sin divisiones"
+              >
+                <AlignJustify className="h-3.5 w-3.5" />
+                <span>Sin Agrupar</span>
+              </button>
+            </div>
+
+            {/* Quick collapse/expand all */}
+            {isGroupedByType && groupedSections.length > 1 && (
+              <div className="flex items-center gap-1 pl-1 border-l border-slate-800 text-xs">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={expandAll}
+                  className="h-7 px-2 text-[11px] text-slate-400 hover:text-white"
+                  title="Desplegar todas las secciones de tipos"
+                >
+                  Expandir todo
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={collapseAll}
+                  className="h-7 px-2 text-[11px] text-slate-400 hover:text-white"
+                  title="Plegar todas las secciones de tipos"
+                >
+                  Colapsar todo
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
