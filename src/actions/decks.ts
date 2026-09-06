@@ -110,6 +110,20 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
 
   if (!deck) return null;
 
+  // 1. Fetch assigned_quantity for all cards in this deck directly from SQL (immune to in-memory DMMF caching)
+  let thisDeckAssignments: Map<string, number> = new Map();
+  try {
+    const rows = await prisma.$queryRaw<Array<{ id: string; assignedQuantity: any }>>`
+      SELECT id, COALESCE(assigned_quantity, 0) as "assignedQuantity" 
+      FROM deck_cards 
+      WHERE deck_id = ${deckId}
+    `;
+    thisDeckAssignments = new Map(rows.map((r) => [r.id, Number(r.assignedQuantity || 0)]));
+  } catch (rawErr) {
+    console.warn("Could not query assigned_quantity directly:", rawErr);
+  }
+
+  // 2. Fetch cross-deck assignments for all cards assigned to other decks of this user
   let allAssignedDeckCards: Array<{
     id: string;
     cardScryfallId: string;
@@ -120,37 +134,39 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
   }> = [];
 
   try {
-    allAssignedDeckCards = await prisma.deckCard.findMany({
-      where: {
-        deck: { userId },
-        assignedQuantity: { gt: 0 },
-      },
-      include: {
-        deck: {
-          select: { id: true, name: true },
-        },
-      },
-    });
+    const assignedRows = await prisma.$queryRaw<
+      Array<{
+        id: string;
+        cardScryfallId: string;
+        cardName: string;
+        assignedQuantity: any;
+        deckId: string;
+        deckName: string;
+      }>
+    >`
+      SELECT 
+        dc.id, 
+        dc.deck_id as "deckId", 
+        dc.card_scryfall_id as "cardScryfallId", 
+        dc.card_name as "cardName", 
+        COALESCE(dc.assigned_quantity, 0) as "assignedQuantity", 
+        d.id as "targetDeckId", 
+        d.name as "deckName"
+      FROM deck_cards dc
+      JOIN decks d ON dc.deck_id = d.id
+      WHERE d.user_id = ${userId} AND COALESCE(dc.assigned_quantity, 0) > 0
+    `;
+
+    allAssignedDeckCards = assignedRows.map((r) => ({
+      id: r.id,
+      cardScryfallId: r.cardScryfallId,
+      cardName: r.cardName,
+      assignedQuantity: Number(r.assignedQuantity || 0),
+      deckId: r.deckId,
+      deck: { id: r.deckId, name: r.deckName },
+    }));
   } catch (err) {
-    console.warn("Retrying deckCard assignment query with in-memory filter:", err);
-    try {
-      const rawDeckCards = await prisma.deckCard.findMany({
-        where: { deck: { userId } },
-        include: {
-          deck: {
-            select: { id: true, name: true },
-          },
-        },
-      });
-      allAssignedDeckCards = rawDeckCards
-        .filter((c) => ((c as any).assignedQuantity ?? 0) > 0)
-        .map((c) => ({
-          ...c,
-          assignedQuantity: (c as any).assignedQuantity ?? 0,
-        })) as typeof allAssignedDeckCards;
-    } catch (fallbackErr) {
-      console.warn("Fallback assignment query error:", fallbackErr);
-    }
+    console.warn("Could not load cross-deck card assignments via raw query:", err);
   }
 
   // Build lookup of assignments across all decks
@@ -231,7 +247,7 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
       cardScryfallId: c.cardScryfallId,
       cardName: c.cardName,
       quantity: c.quantity,
-      assignedQuantity: c.assignedQuantity ?? 0,
+      assignedQuantity: thisDeckAssignments.get(c.id) ?? (c as any).assignedQuantity ?? 0,
       isSideboard: c.isSideboard,
       manaCost: c.manaCost,
       typeLine: c.typeLine,
@@ -430,44 +446,45 @@ export async function assignCardToDeck(deckCardId: string, quantityToAssign: num
 
   const ownedInCollection = collectionCards.reduce((sum, c) => sum + c.quantity, 0);
 
-  // Check total assigned across all decks
-  const matchingCards = await prisma.deckCard.findMany({
-    where: {
-      deck: { userId },
-      OR: [
-        { cardScryfallId: card.cardScryfallId },
-        { cardName: { equals: card.cardName, mode: "insensitive" } },
-      ],
-    },
-  });
-
-  const totalAssigned = matchingCards
-    .filter((c) => ((c as any).assignedQuantity ?? 0) > 0)
-    .reduce((sum, c) => sum + ((c as any).assignedQuantity ?? 0), 0);
+  // Check total assigned across all decks via direct SQL
+  const totalAssignedResult = await prisma.$queryRaw<Array<{ total: any }>>`
+    SELECT COALESCE(SUM(dc.assigned_quantity), 0) as "total"
+    FROM deck_cards dc
+    JOIN decks d ON dc.deck_id = d.id
+    WHERE d.user_id = ${userId}
+      AND (dc.card_scryfall_id = ${card.cardScryfallId} OR LOWER(dc.card_name) = LOWER(${card.cardName}))
+  `;
+  const totalAssigned = Number(totalAssignedResult[0]?.total || 0);
   const availableToAssign = Math.max(0, ownedInCollection - totalAssigned);
-
 
   if (availableToAssign <= 0) {
     throw new Error("No hay copias libres disponibles en tu colección física para asignar.");
   }
 
-  const neededInDeck = Math.max(0, card.quantity - card.assignedQuantity);
+  // Get card's current assigned quantity directly
+  const cardAssignedResult = await prisma.$queryRaw<Array<{ assignedQuantity: any }>>`
+    SELECT COALESCE(assigned_quantity, 0) as "assignedQuantity"
+    FROM deck_cards
+    WHERE id = ${deckCardId}
+  `;
+  const currentAssigned = Number(cardAssignedResult[0]?.assignedQuantity || 0);
+
+  const neededInDeck = Math.max(0, card.quantity - currentAssigned);
   const amountToAssign = Math.min(quantityToAssign, availableToAssign, neededInDeck);
 
   if (amountToAssign <= 0) {
-    return card;
+    return { ...card, assignedQuantity: currentAssigned };
   }
 
-  const updated = await prisma.deckCard.update({
-    where: { id: deckCardId },
-    data: {
-      assignedQuantity: card.assignedQuantity + amountToAssign,
-    },
-  });
+  await prisma.$executeRaw`
+    UPDATE deck_cards 
+    SET assigned_quantity = COALESCE(assigned_quantity, 0) + ${amountToAssign} 
+    WHERE id = ${deckCardId}
+  `;
 
   revalidatePath("/decks");
   revalidatePath(`/decks/${card.deckId}`);
-  return updated;
+  return { ...card, assignedQuantity: currentAssigned + amountToAssign };
 }
 
 /**
@@ -485,19 +502,25 @@ export async function unassignCardFromDeck(deckCardId: string, quantityToUnassig
     throw new Error("Carta o mazo no encontrado.");
   }
 
-  const amountToUnassign = Math.min(quantityToUnassign, card.assignedQuantity);
-  if (amountToUnassign <= 0) return card;
+  const cardAssignedResult = await prisma.$queryRaw<Array<{ assignedQuantity: any }>>`
+    SELECT COALESCE(assigned_quantity, 0) as "assignedQuantity"
+    FROM deck_cards
+    WHERE id = ${deckCardId}
+  `;
+  const currentAssigned = Number(cardAssignedResult[0]?.assignedQuantity || 0);
 
-  const updated = await prisma.deckCard.update({
-    where: { id: deckCardId },
-    data: {
-      assignedQuantity: Math.max(0, card.assignedQuantity - amountToUnassign),
-    },
-  });
+  const amountToUnassign = Math.min(quantityToUnassign, currentAssigned);
+  if (amountToUnassign <= 0) return { ...card, assignedQuantity: currentAssigned };
+
+  await prisma.$executeRaw`
+    UPDATE deck_cards 
+    SET assigned_quantity = GREATEST(0, COALESCE(assigned_quantity, 0) - ${amountToUnassign}) 
+    WHERE id = ${deckCardId}
+  `;
 
   revalidatePath("/decks");
   revalidatePath(`/decks/${card.deckId}`);
-  return updated;
+  return { ...card, assignedQuantity: Math.max(0, currentAssigned - amountToUnassign) };
 }
 
 /**
@@ -511,47 +534,58 @@ export async function reassignCardToDeck(
 ) {
   const userId = await getCurrentUserId();
 
-  const [toCard, fromCard] = await Promise.all([
-    prisma.deckCard.findUnique({
-      where: { id: toDeckCardId },
-      include: { deck: true },
-    }),
-    prisma.deckCard.findFirst({
-      where: {
-        deckId: fromDeckId,
-        deck: { userId },
-        cardName: { equals: cardName, mode: "insensitive" },
-        assignedQuantity: { gt: 0 },
-      },
-    }),
-  ]);
+  const toCard = await prisma.deckCard.findUnique({
+    where: { id: toDeckCardId },
+    include: { deck: true },
+  });
 
   if (!toCard || toCard.deck.userId !== userId) {
     throw new Error("Mazo destino no encontrado.");
   }
 
+  // Find assigned card in fromDeck directly
+  const fromCards = await prisma.$queryRaw<Array<{ id: string; assignedQuantity: any }>>`
+    SELECT dc.id, COALESCE(dc.assigned_quantity, 0) as "assignedQuantity"
+    FROM deck_cards dc
+    JOIN decks d ON dc.deck_id = d.id
+    WHERE dc.deck_id = ${fromDeckId}
+      AND d.user_id = ${userId}
+      AND LOWER(dc.card_name) = LOWER(${cardName})
+      AND COALESCE(dc.assigned_quantity, 0) > 0
+    LIMIT 1
+  `;
+  const fromCard = fromCards[0];
+
   if (!fromCard) {
     throw new Error("No se encontró la carta asignada en el mazo origen.");
   }
 
+  const toCardAssignedResult = await prisma.$queryRaw<Array<{ assignedQuantity: any }>>`
+    SELECT COALESCE(assigned_quantity, 0) as "assignedQuantity"
+    FROM deck_cards
+    WHERE id = ${toDeckCardId}
+  `;
+  const toCardAssigned = Number(toCardAssignedResult[0]?.assignedQuantity || 0);
+  const fromCardAssigned = Number(fromCard.assignedQuantity || 0);
+
   const actualTransfer = Math.min(
     quantityToTransfer,
-    fromCard.assignedQuantity,
-    Math.max(0, toCard.quantity - toCard.assignedQuantity)
+    fromCardAssigned,
+    Math.max(0, toCard.quantity - toCardAssigned)
   );
 
   if (actualTransfer <= 0) return;
 
-  await prisma.$transaction([
-    prisma.deckCard.update({
-      where: { id: fromCard.id },
-      data: { assignedQuantity: fromCard.assignedQuantity - actualTransfer },
-    }),
-    prisma.deckCard.update({
-      where: { id: toCard.id },
-      data: { assignedQuantity: toCard.assignedQuantity + actualTransfer },
-    }),
-  ]);
+  await prisma.$executeRaw`
+    UPDATE deck_cards 
+    SET assigned_quantity = GREATEST(0, COALESCE(assigned_quantity, 0) - ${actualTransfer}) 
+    WHERE id = ${fromCard.id}
+  `;
+  await prisma.$executeRaw`
+    UPDATE deck_cards 
+    SET assigned_quantity = COALESCE(assigned_quantity, 0) + ${actualTransfer} 
+    WHERE id = ${toCard.id}
+  `;
 
   revalidatePath("/decks");
   revalidatePath(`/decks/${toCard.deckId}`);
