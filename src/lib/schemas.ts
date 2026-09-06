@@ -53,20 +53,30 @@ export interface DeckWithCompletion {
   completionPercentage: number;
 }
 
+export interface OtherDeckAssignment {
+  deckId: string;
+  deckName: string;
+  quantity: number;
+}
+
 export interface DeckCardWithOwnership {
   id: string;
   deckId: string;
   cardScryfallId: string;
   cardName: string;
   quantity: number;
+  assignedQuantity: number;
   isSideboard: boolean;
   manaCost: string | null;
   typeLine: string | null;
   imageUri: string | null;
   ownedInCollection: number;
+  availableToAssign: number;
+  assignedInOtherDecks: OtherDeckAssignment[];
   missingCount: number;
 }
 
 export interface DeckDetailWithStats extends DeckWithCompletion {
   cards: DeckCardWithOwnership[];
 }
+

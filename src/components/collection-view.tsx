@@ -26,6 +26,12 @@ import {
 import { PriceProvider, PriceSummary } from "@/lib/pricing";
 import { PricingProviderSelector } from "@/components/pricing-provider-selector";
 import { PriceBadge } from "@/components/price-badge";
+import { CardSortingBar } from "@/components/card-sorting-bar";
+import { SortField, SortDirection, sortCards } from "@/lib/sorting";
+import {
+  triggerWeeklyCollectionPricing,
+  getCollectionPricesLastUpdated,
+} from "@/actions/pricing";
 import { normalizeCardName } from "@/lib/worker";
 
 interface CollectionItem {
@@ -50,10 +56,23 @@ export function CollectionView({ initialCards, initialStats }: CollectionViewPro
   const [searchQuery, setSearchQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  // Sorting state
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  // Weekly pricing worker state
+  const [isUpdatingWeeklyPrices, setIsUpdatingWeeklyPrices] = useState(false);
+  const [lastPricesUpdate, setLastPricesUpdate] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCollectionPricesLastUpdated().then(setLastPricesUpdate);
+  }, []);
+
   // Dynamic pricing state
   const [priceProvider, setPriceProvider] = useState<PriceProvider>("cardmarket");
   const [priceSummary, setPriceSummary] = useState<PriceSummary | null>(null);
   const [isLoadingPrices, setIsLoadingPrices] = useState(false);
+
 
   const loadPrices = useCallback(
     async (providerToLoad = priceProvider, bypassCache = false) => {
@@ -128,6 +147,26 @@ export function CollectionView({ initialCards, initialStats }: CollectionViewPro
     }
   };
 
+  const handleRunWeeklyWorker = async () => {
+    setIsUpdatingWeeklyPrices(true);
+    try {
+      const res = await triggerWeeklyCollectionPricing();
+      if (res.success) {
+        setLastPricesUpdate(res.timestamp);
+        await loadPrices(priceProvider, true);
+        alert(`¡Precios actualizados! Se sincronizaron ${res.updatedCatalogCount} cartas en la base de datos.`);
+      } else {
+        alert("El worker finalizó con algunos avisos.");
+      }
+    } catch (err: any) {
+      alert("Error ejecutando el worker de precios: " + (err?.message || err));
+    } finally {
+      setIsUpdatingWeeklyPrices(false);
+    }
+  };
+
+  const sortedCards = sortCards(filteredCards, sortField, sortDirection, priceSummary);
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
       {/* Header section */}
@@ -181,15 +220,71 @@ export function CollectionView({ initialCards, initialStats }: CollectionViewPro
         showMissingNetValue={false}
       />
 
+      {/* Weekly pricing sync banner & controls */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-slate-800/80 bg-slate-900/30 text-xs text-slate-400">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-amber-400 shrink-0" />
+          <span>
+            {lastPricesUpdate ? (
+              <>
+                Última sincronización semanal de precios:{" "}
+                <span className="font-semibold text-slate-200">
+                  {new Date(lastPricesUpdate).toLocaleDateString("es-ES", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </>
+            ) : (
+              "Sincronización semanal automática activa (actualización periódica de mercado)."
+            )}
+          </span>
+        </div>
+
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleRunWeeklyWorker}
+          disabled={isUpdatingWeeklyPrices}
+          className="h-7 text-xs border-amber-500/40 text-amber-300 hover:bg-amber-500/10 hover:border-amber-400 gap-1.5 shrink-0"
+        >
+          {isUpdatingWeeklyPrices ? (
+            <>
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-amber-300 border-t-transparent" />
+              <span>Sincronizando precios...</span>
+            </>
+          ) : (
+            <span>🔄 Sincronizar Precios Semanales Ahora</span>
+          )}
+        </Button>
+      </div>
+
       {/* Search and Filters */}
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-        <Input
-          placeholder="Filtrar cartas de tu colección por nombre..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 h-11 bg-slate-900/80 text-base border-slate-800"
-        />
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Filtrar cartas de tu colección por nombre..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-11 bg-slate-900/80 text-base border-slate-800"
+          />
+        </div>
+
+        {filteredCards.length > 0 && (
+          <CardSortingBar
+            currentField={sortField}
+            currentDirection={sortDirection}
+            onSortChange={(f, d) => {
+              setSortField(f);
+              setSortDirection(d);
+            }}
+            showStatusOption={false}
+          />
+        )}
       </div>
 
       {/* Card Grid / List */}
@@ -219,7 +314,8 @@ export function CollectionView({ initialCards, initialStats }: CollectionViewPro
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredCards.map((card) => {
+          {sortedCards.map((card) => {
+
             const isBusy = busyId === card.id;
 
             return (

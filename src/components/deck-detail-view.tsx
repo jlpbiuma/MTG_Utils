@@ -27,11 +27,16 @@ import {
   addCardToDeck,
   updateDeckCardQuantity,
   removeCardFromDeck,
+  assignCardToDeck,
+  unassignCardFromDeck,
+  reassignCardToDeck,
 } from "@/actions/decks";
 import { addOrIncrementCard } from "@/actions/collection";
 import { PriceProvider, PriceSummary } from "@/lib/pricing";
 import { PricingProviderSelector } from "@/components/pricing-provider-selector";
 import { PriceBadge } from "@/components/price-badge";
+import { CardSortingBar } from "@/components/card-sorting-bar";
+import { SortField, SortDirection, sortCards } from "@/lib/sorting";
 import { normalizeCardName } from "@/lib/worker";
 
 interface DeckDetailViewProps {
@@ -42,6 +47,11 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
   const [filterMode, setFilterMode] = useState<"all" | "missing" | "owned">("all");
   const [activeBoard, setActiveBoard] = useState<"mainboard" | "sideboard">("mainboard");
   const [loadingCardId, setLoadingCardId] = useState<string | null>(null);
+
+  // Sorting state
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
 
   // Dynamic pricing state
   const [priceProvider, setPriceProvider] = useState<PriceProvider>("cardmarket");
@@ -131,6 +141,39 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
     }
   };
 
+  const handleAssign = async (cardId: string) => {
+    setLoadingCardId(cardId);
+    try {
+      await assignCardToDeck(cardId, 1);
+    } catch (err: any) {
+      alert(err?.message || "Error al asignar carta");
+    } finally {
+      setLoadingCardId(null);
+    }
+  };
+
+  const handleUnassign = async (cardId: string) => {
+    setLoadingCardId(cardId);
+    try {
+      await unassignCardFromDeck(cardId, 1);
+    } catch (err: any) {
+      alert(err?.message || "Error al liberar carta");
+    } finally {
+      setLoadingCardId(null);
+    }
+  };
+
+  const handleReassign = async (fromDeckId: string, toDeckCardId: string, cardName: string) => {
+    setLoadingCardId(toDeckCardId);
+    try {
+      await reassignCardToDeck(fromDeckId, toDeckCardId, cardName, 1);
+    } catch (err: any) {
+      alert(err?.message || "Error al reasignar carta");
+    } finally {
+      setLoadingCardId(null);
+    }
+  };
+
   const handleAddMissingToCollection = async (card: DeckCardWithOwnership) => {
     setLoadingCardId(card.id);
     try {
@@ -147,7 +190,10 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
     }
   };
 
+  const sortedCards = sortCards(filteredCards, sortField, sortDirection, priceSummary);
+
   const isComplete = initialDeck.totalCards > 0 && initialDeck.missingCardsCount === 0;
+
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
@@ -311,6 +357,21 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
         </div>
       </div>
 
+      {/* Interactive Sorting Bar */}
+      {filteredCards.length > 0 && (
+        <div className="px-1">
+          <CardSortingBar
+            currentField={sortField}
+            currentDirection={sortDirection}
+            onSortChange={(f, d) => {
+              setSortField(f);
+              setSortDirection(d);
+            }}
+            showStatusOption={true}
+          />
+        </div>
+      )}
+
       {/* Card Table / List */}
       {filteredCards.length === 0 ? (
         <div className="text-center py-16 px-4 rounded-xl border border-dashed border-slate-800 bg-slate-900/20">
@@ -330,7 +391,7 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/40 backdrop-blur-md shadow-xl">
           <div className="divide-y divide-slate-800/60">
-            {filteredCards.map((card) => {
+            {sortedCards.map((card) => {
               const isCardComplete = card.ownedInCollection >= card.quantity;
               const isBusy = loadingCardId === card.id;
 
@@ -407,8 +468,80 @@ export function DeckDetailView({ initialDeck }: DeckDetailViewProps) {
                           </Button>
                         )}
                       </div>
+
+                      {/* Physical Assignment status pill & actions */}
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        {card.assignedQuantity > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-sky-300 bg-sky-950/70 px-2 py-0.5 rounded border border-sky-800/60 shadow-sm"
+                              title="Copias de tu colección física asignadas a este mazo"
+                            >
+                              🎯 Asignada ({card.assignedQuantity}/{card.quantity})
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleUnassign(card.id)}
+                              disabled={isBusy}
+                              className="h-6 text-[11px] px-2 text-slate-400 hover:text-rose-300 hover:bg-rose-950/30"
+                              title="Liberar 1 copia física de vuelta a tu colección libre"
+                            >
+                              Liberar
+                            </Button>
+                          </div>
+                        )}
+
+                        {card.assignedQuantity < card.quantity && (
+                          <>
+                            {card.availableToAssign > 0 ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleAssign(card.id)}
+                                disabled={isBusy}
+                                className="h-6 text-[11px] px-2 gap-1 text-sky-300 border-sky-500/40 hover:bg-sky-500/10 hover:border-sky-400"
+                                title="Asignar una copia física disponible de tu colección a este mazo"
+                              >
+                                📥 Asignar al mazo ({card.availableToAssign} disp.)
+                              </Button>
+                            ) : card.assignedInOtherDecks && card.assignedInOtherDecks.length > 0 ? (
+                              <div className="flex items-center gap-1.5 flex-wrap text-xs text-amber-300 bg-amber-950/60 px-2.5 py-1 rounded border border-amber-800/60">
+                                <span className="font-semibold text-amber-400">⚠️ Asignada en:</span>
+                                {card.assignedInOtherDecks.map((other) => (
+                                  <span
+                                    key={other.deckId}
+                                    className="flex items-center gap-1 bg-amber-900/40 px-1.5 py-0.5 rounded border border-amber-700/40 text-amber-200 font-medium"
+                                  >
+                                    <span>
+                                      {other.deckName} ({other.quantity})
+                                    </span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        handleReassign(other.deckId, card.id, card.cardName)
+                                      }
+                                      disabled={isBusy}
+                                      className="h-4 text-[10px] px-1 text-amber-300 hover:text-white underline font-bold"
+                                      title={`Reasignar copia física desde ${other.deckName} a este mazo`}
+                                    >
+                                      Reasignar aquí
+                                    </Button>
+                                  </span>
+                                ))}
+                              </div>
+                            ) : card.ownedInCollection === 0 ? (
+                              <span className="text-xs text-slate-500 italic">
+                                (No la tienes en colección)
+                              </span>
+                            ) : null}
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
+
 
                   {/* Right: Price Badge + Quantity controls & Delete */}
                   <div className="flex items-center justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/60 flex-wrap sm:flex-nowrap">

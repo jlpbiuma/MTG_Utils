@@ -90,12 +90,13 @@ export async function getDecksWithCompletion(): Promise<DeckWithCompletion[]> {
 }
 
 /**
- * Fetches single deck with full details and per-card owned/missing breakdown.
+ * Fetches single deck with full details and per-card owned/missing breakdown,
+ * including cross-deck physical card assignment tracking.
  */
 export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats | null> {
   const userId = await getCurrentUserId();
 
-  const [deck, collectionMaps] = await Promise.all([
+  const [deck, collectionMaps, allAssignedDeckCards] = await Promise.all([
     prisma.deck.findFirst({
       where: { id: deckId, userId },
       include: {
@@ -105,9 +106,47 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
       },
     }),
     getUserCollectionMap(userId),
+    prisma.deckCard.findMany({
+      where: {
+        deck: { userId },
+        assignedQuantity: { gt: 0 },
+      },
+      include: {
+        deck: {
+          select: { id: true, name: true },
+        },
+      },
+    }),
   ]);
 
   if (!deck) return null;
+
+  // Build lookup of assignments across all decks
+  // key: normalizedName or scryfallId -> array of { deckId, deckName, quantity, cardId }
+  const assignmentsByCard = new Map<
+    string,
+    Array<{ deckId: string; deckName: string; quantity: number; cardId: string }>
+  >();
+
+  for (const ac of allAssignedDeckCards) {
+    const norm = ac.cardName.toLowerCase().trim().split(" // ")[0];
+    const item = {
+      deckId: ac.deck.id,
+      deckName: ac.deck.name,
+      quantity: ac.assignedQuantity,
+      cardId: ac.id,
+    };
+
+    // Index by ID
+    const byIdList = assignmentsByCard.get(ac.cardScryfallId) || [];
+    byIdList.push(item);
+    assignmentsByCard.set(ac.cardScryfallId, byIdList);
+
+    // Index by normalized name
+    const byNameList = assignmentsByCard.get(`name:${norm}`) || [];
+    byNameList.push(item);
+    assignmentsByCard.set(`name:${norm}`, byNameList);
+  }
 
   const totalCards = deck.cards.reduce((sum, c) => sum + c.quantity, 0);
   const uniqueCards = deck.cards.length;
@@ -115,10 +154,43 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
   let ownedCards = 0;
   const cardsWithOwnership: DeckCardWithOwnership[] = deck.cards.map((c) => {
     const norm = c.cardName.toLowerCase().trim().split(" // ")[0];
-    const ownedInCollection = collectionMaps.byId.get(c.cardScryfallId) || collectionMaps.byName.get(norm) || 0;
+    const ownedInCollection =
+      collectionMaps.byId.get(c.cardScryfallId) || collectionMaps.byName.get(norm) || 0;
     const effectiveOwned = Math.min(ownedInCollection, c.quantity);
     ownedCards += effectiveOwned;
     const missingCount = Math.max(0, c.quantity - ownedInCollection);
+
+    // Get all assignments for this card
+    const cardAssignments =
+      assignmentsByCard.get(c.cardScryfallId) ||
+      assignmentsByCard.get(`name:${norm}`) ||
+      [];
+
+    // Filter out duplicates (if card matched both by ID and Name)
+    const distinctAssignmentsMap = new Map<string, { deckId: string; deckName: string; quantity: number }>();
+    for (const a of cardAssignments) {
+      const existing = distinctAssignmentsMap.get(a.cardId);
+      if (!existing) {
+        distinctAssignmentsMap.set(a.cardId, {
+          deckId: a.deckId,
+          deckName: a.deckName,
+          quantity: a.quantity,
+        });
+      }
+    }
+    const distinctAssignments = Array.from(distinctAssignmentsMap.values());
+
+    // Total assigned across ALL decks
+    const totalAssignedAcrossAllDecks = distinctAssignments.reduce(
+      (sum, a) => sum + a.quantity,
+      0
+    );
+
+    // Available unassigned copies in physical collection
+    const availableToAssign = Math.max(0, ownedInCollection - totalAssignedAcrossAllDecks);
+
+    // Assigned in OTHER decks (excluding this deck)
+    const assignedInOtherDecks = distinctAssignments.filter((a) => a.deckId !== deckId);
 
     return {
       id: c.id,
@@ -126,11 +198,14 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
       cardScryfallId: c.cardScryfallId,
       cardName: c.cardName,
       quantity: c.quantity,
+      assignedQuantity: c.assignedQuantity ?? 0,
       isSideboard: c.isSideboard,
       manaCost: c.manaCost,
       typeLine: c.typeLine,
       imageUri: c.imageUri,
       ownedInCollection,
+      availableToAssign,
+      assignedInOtherDecks,
       missingCount,
     };
   });
@@ -155,6 +230,7 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
     cards: cardsWithOwnership,
   };
 }
+
 
 export async function createDeck(input: DeckCreateInput) {
   const userId = await getCurrentUserId();
@@ -290,3 +366,160 @@ export async function removeCardFromDeck(cardId: string) {
   revalidatePath("/decks");
   revalidatePath(`/decks/${card.deckId}`);
 }
+
+/**
+ * Assigns one or more physical card copies from the user's collection to a specific deck.
+ */
+export async function assignCardToDeck(deckCardId: string, quantityToAssign: number = 1) {
+  const userId = await getCurrentUserId();
+
+  const card = await prisma.deckCard.findUnique({
+    where: { id: deckCardId },
+    include: { deck: true },
+  });
+
+  if (!card || card.deck.userId !== userId) {
+    throw new Error("Carta o mazo no encontrado.");
+  }
+
+  const norm = card.cardName.toLowerCase().trim().split(" // ")[0];
+
+  // Check total owned in collection
+  const collectionCards = await prisma.collectionCard.findMany({
+    where: {
+      userId,
+      OR: [
+        { cardScryfallId: card.cardScryfallId },
+        { cardName: { equals: card.cardName, mode: "insensitive" } },
+      ],
+    },
+  });
+
+  const ownedInCollection = collectionCards.reduce((sum, c) => sum + c.quantity, 0);
+
+  // Check total assigned across all decks
+  const allAssigned = await prisma.deckCard.findMany({
+    where: {
+      deck: { userId },
+      OR: [
+        { cardScryfallId: card.cardScryfallId },
+        { cardName: { equals: card.cardName, mode: "insensitive" } },
+      ],
+      assignedQuantity: { gt: 0 },
+    },
+  });
+
+  const totalAssigned = allAssigned.reduce((sum, c) => sum + c.assignedQuantity, 0);
+  const availableToAssign = Math.max(0, ownedInCollection - totalAssigned);
+
+  if (availableToAssign <= 0) {
+    throw new Error("No hay copias libres disponibles en tu colección física para asignar.");
+  }
+
+  const neededInDeck = Math.max(0, card.quantity - card.assignedQuantity);
+  const amountToAssign = Math.min(quantityToAssign, availableToAssign, neededInDeck);
+
+  if (amountToAssign <= 0) {
+    return card;
+  }
+
+  const updated = await prisma.deckCard.update({
+    where: { id: deckCardId },
+    data: {
+      assignedQuantity: card.assignedQuantity + amountToAssign,
+    },
+  });
+
+  revalidatePath("/decks");
+  revalidatePath(`/decks/${card.deckId}`);
+  return updated;
+}
+
+/**
+ * Unassigns/releases one or more physical card copies from a deck back to the collection pool.
+ */
+export async function unassignCardFromDeck(deckCardId: string, quantityToUnassign: number = 1) {
+  const userId = await getCurrentUserId();
+
+  const card = await prisma.deckCard.findUnique({
+    where: { id: deckCardId },
+    include: { deck: true },
+  });
+
+  if (!card || card.deck.userId !== userId) {
+    throw new Error("Carta o mazo no encontrado.");
+  }
+
+  const amountToUnassign = Math.min(quantityToUnassign, card.assignedQuantity);
+  if (amountToUnassign <= 0) return card;
+
+  const updated = await prisma.deckCard.update({
+    where: { id: deckCardId },
+    data: {
+      assignedQuantity: Math.max(0, card.assignedQuantity - amountToUnassign),
+    },
+  });
+
+  revalidatePath("/decks");
+  revalidatePath(`/decks/${card.deckId}`);
+  return updated;
+}
+
+/**
+ * Transfers/reassigns physical copies from one deck directly to another deck.
+ */
+export async function reassignCardToDeck(
+  fromDeckId: string,
+  toDeckCardId: string,
+  cardName: string,
+  quantityToTransfer: number = 1
+) {
+  const userId = await getCurrentUserId();
+
+  const [toCard, fromCard] = await Promise.all([
+    prisma.deckCard.findUnique({
+      where: { id: toDeckCardId },
+      include: { deck: true },
+    }),
+    prisma.deckCard.findFirst({
+      where: {
+        deckId: fromDeckId,
+        deck: { userId },
+        cardName: { equals: cardName, mode: "insensitive" },
+        assignedQuantity: { gt: 0 },
+      },
+    }),
+  ]);
+
+  if (!toCard || toCard.deck.userId !== userId) {
+    throw new Error("Mazo destino no encontrado.");
+  }
+
+  if (!fromCard) {
+    throw new Error("No se encontró la carta asignada en el mazo origen.");
+  }
+
+  const actualTransfer = Math.min(
+    quantityToTransfer,
+    fromCard.assignedQuantity,
+    Math.max(0, toCard.quantity - toCard.assignedQuantity)
+  );
+
+  if (actualTransfer <= 0) return;
+
+  await prisma.$transaction([
+    prisma.deckCard.update({
+      where: { id: fromCard.id },
+      data: { assignedQuantity: fromCard.assignedQuantity - actualTransfer },
+    }),
+    prisma.deckCard.update({
+      where: { id: toCard.id },
+      data: { assignedQuantity: toCard.assignedQuantity + actualTransfer },
+    }),
+  ]);
+
+  revalidatePath("/decks");
+  revalidatePath(`/decks/${toCard.deckId}`);
+  revalidatePath(`/decks/${fromDeckId}`);
+}
+

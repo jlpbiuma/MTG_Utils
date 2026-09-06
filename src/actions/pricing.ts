@@ -79,3 +79,29 @@ export async function getCollectionPriceSummary(
 
   return getPriceSummary(cardsToPrice, provider, bypassCache);
 }
+
+/**
+ * Server action to manually trigger the weekly collection pricing worker.
+ */
+export async function triggerWeeklyCollectionPricing() {
+  const { runWeeklyCollectionPricingWorker } = await import("@/lib/pricing-worker");
+  return runWeeklyCollectionPricingWorker({ delayMs: 80 });
+}
+
+/**
+ * Gets the timestamp of when collection card prices were most recently updated in the catalog.
+ */
+export async function getCollectionPricesLastUpdated(): Promise<string | null> {
+  try {
+    if (!prisma.cardCatalog?.findFirst) return null;
+    const latest = await prisma.cardCatalog.findFirst({
+      where: { pricesUpdatedAt: { not: null } },
+      orderBy: { pricesUpdatedAt: "desc" },
+      select: { pricesUpdatedAt: true },
+    });
+    return latest?.pricesUpdatedAt ? latest.pricesUpdatedAt.toISOString() : null;
+  } catch {
+    return null;
+  }
+}
+

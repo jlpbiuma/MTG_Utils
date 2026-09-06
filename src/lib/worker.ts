@@ -81,16 +81,34 @@ export async function processPendingCardsWorker(options?: {
 
     // 2. Step 1: Check local CardCatalog cache first
     const normalizedNames = distinctNames.map((name) => normalizeCardName(name));
-    const cachedRecords = await prisma.cardCatalog.findMany({
-      where: {
-        normalizedName: { in: normalizedNames },
-      },
-    });
+    let cachedRecords: Array<{
+      id: string;
+      name: string;
+      normalizedName: string;
+      imageUri: string | null;
+      manaCost: string | null;
+      typeLine: string | null;
+      setCode: string | null;
+      collectorNumber: string | null;
+    }> = [];
 
-    const cacheMap = new Map<string, typeof cachedRecords[0]>();
+    try {
+      if (prisma.cardCatalog?.findMany) {
+        cachedRecords = await prisma.cardCatalog.findMany({
+          where: {
+            normalizedName: { in: normalizedNames },
+          },
+        });
+      }
+    } catch (e) {
+      console.warn("Worker could not read cardCatalog:", e);
+    }
+
+    const cacheMap = new Map<string, (typeof cachedRecords)[0]>();
     for (const record of cachedRecords) {
       cacheMap.set(record.normalizedName, record);
     }
+
 
     const uncachedNames: string[] = [];
     for (const originalName of distinctNames) {

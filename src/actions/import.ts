@@ -131,10 +131,27 @@ export async function importDeckFromText(params: {
 
   // 1. Check local CardCatalog cache for instant zero-latency resolution
   const normalizedNames = distinctCards.map((c) => normalizeCardName(c.name));
-  const cachedCatalog = await prisma.cardCatalog.findMany({
-    where: { normalizedName: { in: normalizedNames } },
-  });
+  let cachedCatalog: Array<{
+    id: string;
+    name: string;
+    normalizedName: string;
+    manaCost: string | null;
+    typeLine: string | null;
+    imageUri: string | null;
+  }> = [];
+
+  try {
+    if (prisma.cardCatalog?.findMany) {
+      cachedCatalog = await prisma.cardCatalog.findMany({
+        where: { normalizedName: { in: normalizedNames } },
+      });
+    }
+  } catch (err) {
+    console.warn("Could not query cardCatalog cache during deck import:", err);
+  }
+
   const catalogMap = new Map(cachedCatalog.map((c) => [c.normalizedName, c]));
+
 
   // 2. Create Deck
   const deck = await prisma.deck.create({
@@ -245,9 +262,27 @@ export async function importCollectionFromText(rawText: string): Promise<{
 
   // 1. Check local CardCatalog cache
   const normalizedNames = Array.from(aggregatedCards.keys());
-  const cachedCatalog = await prisma.cardCatalog.findMany({
-    where: { normalizedName: { in: normalizedNames } },
-  });
+  let cachedCatalog: Array<{
+    id: string;
+    name: string;
+    normalizedName: string;
+    manaCost: string | null;
+    typeLine: string | null;
+    imageUri: string | null;
+    setCode: string | null;
+    collectorNumber: string | null;
+  }> = [];
+
+  try {
+    if (prisma.cardCatalog?.findMany) {
+      cachedCatalog = await prisma.cardCatalog.findMany({
+        where: { normalizedName: { in: normalizedNames } },
+      });
+    }
+  } catch (err) {
+    console.warn("Could not query cardCatalog cache during collection import:", err);
+  }
+
   const catalogMap = new Map(cachedCatalog.map((c) => [c.normalizedName, c]));
 
   // 2. Fetch user's existing collection cards
@@ -265,7 +300,7 @@ export async function importCollectionFromText(rawText: string): Promise<{
 
   const existingMap = new Map(existingRecords.map((r) => [r.cardScryfallId, r]));
 
-  const toCreate: Array<{
+  const toCreateRaw: Array<{
     userId: string;
     cardScryfallId: string;
     cardName: string;
@@ -302,7 +337,7 @@ export async function importCollectionFromText(rawText: string): Promise<{
         imageUri: cached?.imageUri || existing.imageUri,
       });
     } else {
-      toCreate.push({
+      toCreateRaw.push({
         userId,
         cardScryfallId: targetId,
         cardName: cached ? cached.name : item.cardName,
@@ -316,12 +351,25 @@ export async function importCollectionFromText(rawText: string): Promise<{
     }
   }
 
+  // Deduplicate toCreate by cardScryfallId to strictly honor @@unique([userId, cardScryfallId])
+  const createMap = new Map<string, (typeof toCreateRaw)[0]>();
+  for (const item of toCreateRaw) {
+    const existingCreate = createMap.get(item.cardScryfallId);
+    if (existingCreate) {
+      existingCreate.quantity += item.quantity;
+    } else {
+      createMap.set(item.cardScryfallId, { ...item });
+    }
+  }
+  const toCreate = Array.from(createMap.values());
+
   // 3. Bulk insert all new cards in a single query
   if (toCreate.length > 0) {
     await prisma.collectionCard.createMany({
       data: toCreate,
     });
   }
+
 
   // 4. Batch update existing cards in parallel transactions of 50
   if (toUpdate.length > 0) {
