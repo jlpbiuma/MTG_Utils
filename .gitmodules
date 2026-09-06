@@ -4,3 +4,7 @@
 [submodule "backend"]
 	path = backend
 	url = ./backend
+[submodule "frontend_swift"]
+	path = frontend_swift
+	url = ./frontend_swift
+
