@@ -3,19 +3,19 @@ import { z } from "zod";
 export const DeckCreateSchema = z.object({
   name: z.string().min(1, "El nombre del mazo es obligatorio").max(100),
   format: z.string().default("Commander"),
-  description: z.string().optional(),
-  commander: z.string().optional(),
-  commanderScryfallId: z.string().optional(),
-  commanderImageUri: z.string().optional(),
+  description: z.string().nullable().optional(),
+  commander: z.string().nullable().optional(),
+  commanderScryfallId: z.string().nullable().optional(),
+  commanderImageUri: z.string().nullable().optional(),
 });
 
 export const DeckUpdateSchema = z.object({
   name: z.string().min(1, "El nombre del mazo no puede estar vacío").max(100).optional(),
   format: z.string().optional(),
-  description: z.string().optional(),
-  commander: z.string().optional(),
-  commanderScryfallId: z.string().optional(),
-  commanderImageUri: z.string().optional(),
+  description: z.string().nullable().optional(),
+  commander: z.string().nullable().optional(),
+  commanderScryfallId: z.string().nullable().optional(),
+  commanderImageUri: z.string().nullable().optional(),
 });
 
 export const DeckCardCreateSchema = z.object({
@@ -97,6 +97,7 @@ export interface EdhrecCardRecommendation {
   normalizedName: string;
   sanitized: string;
   category: string; // e.g. "High Synergy Cards", "Top Cards", "Creatures", "Instants", etc.
+  categories: string[];
   numDecks: number;
   potentialDecks: number;
   inclusionPct: number; // e.g. 91.4%

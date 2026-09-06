@@ -13,8 +13,18 @@ if (typeof window === "undefined" && !process.env.DATABASE_URL) {
 function isClientOutdated(client: any): boolean {
   if (!client) return true;
   if (!("cardCatalog" in client)) return true;
+  
+  const deckFields = client._runtimeDataModel?.models?.Deck?.fields;
+  if (deckFields && !deckFields.some((f: any) => f.name === "commander")) {
+    return true;
+  }
+
   const deckCardFields = client._runtimeDataModel?.models?.DeckCard?.fields;
-  if (deckCardFields && !deckCardFields.some((f: any) => f.name === "assignedQuantity")) {
+  if (
+    deckCardFields &&
+    (!deckCardFields.some((f: any) => f.name === "assignedQuantity") ||
+      !deckCardFields.some((f: any) => f.name === "isCommander"))
+  ) {
     return true;
   }
   return false;

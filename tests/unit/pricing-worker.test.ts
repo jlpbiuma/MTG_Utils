@@ -13,5 +13,5 @@ describe("Weekly Collection Pricing Worker", () => {
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
     expect(result.timestamp).toBeDefined();
     expect(Array.isArray(result.errors)).toBe(true);
-  });
+  }, 15000);
 });

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Trash2, ExternalLink, CheckCircle2, AlertCircle, Sparkles, Layers, Pencil } from "lucide-react";
+import { Trash2, ExternalLink, CheckCircle2, AlertCircle, Sparkles, Layers, Pencil, Crown } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -95,6 +95,19 @@ export function DeckCardItem({ deck }: DeckCardItemProps) {
         <CardTitle className="text-lg group-hover:text-amber-300 transition-colors line-clamp-1 mt-1">
           {currentName}
         </CardTitle>
+
+        {deck.commander ? (
+          <div className="flex items-center gap-1.5 text-xs text-slate-300 mt-1 truncate">
+            <Crown className="h-3 w-3 text-amber-400 shrink-0" />
+            <span className="text-slate-400 text-[11px]">Comandante:</span>
+            <span className="font-semibold text-slate-200 truncate">{deck.commander}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold mt-1.5">
+            <AlertCircle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+            <span>Sin comandante asignado</span>
+          </div>
+        )}
 
         {currentDescription && (
           <p className="text-xs text-slate-400 line-clamp-2 mt-1 min-h-[32px]">

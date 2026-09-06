@@ -60,4 +60,22 @@ describe("DeckCardItem Component", () => {
     const link = screen.getByRole("link", { name: /Ver Mazo y Faltantes/i });
     expect(link).toHaveAttribute("href", "/decks/deck-123");
   });
+
+  it("should display commander name when deck has an assigned commander", () => {
+    render(<DeckCardItem deck={baseDeck} />);
+
+    expect(screen.getByText("Atris, Oracle of Half-Truths")).toBeInTheDocument();
+    expect(screen.getByText(/Comandante:/i)).toBeInTheDocument();
+  });
+
+  it("should display warning alert when deck has no assigned commander", () => {
+    const deckWithoutCommander: DeckWithCompletion = {
+      ...baseDeck,
+      commander: null,
+    };
+
+    render(<DeckCardItem deck={deckWithoutCommander} />);
+
+    expect(screen.getByText("Sin comandante asignado")).toBeInTheDocument();
+  });
 });

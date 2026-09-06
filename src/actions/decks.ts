@@ -416,17 +416,44 @@ export async function createDeck(input: DeckCreateInput) {
   const userId = await getCurrentUserId();
   const validated = DeckCreateSchema.parse(input);
 
-  const deck = await prisma.deck.create({
-    data: {
-      userId,
-      name: validated.name,
-      format: validated.format,
-      description: validated.description,
-      commander: validated.commander,
-      commanderScryfallId: validated.commanderScryfallId,
-      commanderImageUri: validated.commanderImageUri,
-    },
-  });
+  let deck: any;
+  try {
+    deck = await prisma.deck.create({
+      data: {
+        userId,
+        name: validated.name,
+        format: validated.format,
+        description: validated.description,
+        commander: validated.commander,
+        commanderScryfallId: validated.commanderScryfallId,
+        commanderImageUri: validated.commanderImageUri,
+      },
+    });
+  } catch (err) {
+    console.warn("Prisma create failed in createDeck, using SQL fallback:", err);
+    const newId = crypto.randomUUID();
+    await prisma.$executeRaw`
+      INSERT INTO "public"."decks" ("id", "user_id", "name", "format", "description", "commander", "commander_scryfall_id", "commander_image_uri", "created_at", "updated_at")
+      VALUES (${newId}, ${userId}, ${validated.name}, ${validated.format}, ${validated.description ?? null}, ${validated.commander ?? null}, ${validated.commanderScryfallId ?? null}, ${validated.commanderImageUri ?? null}, NOW(), NOW())
+    `;
+    deck = { id: newId, userId, ...validated };
+  }
+
+  // If commander was provided, ensure it's in the deck as a card
+  if (validated.commander && deck?.id) {
+    try {
+      await addCardToDeck(deck.id, {
+        cardScryfallId: validated.commanderScryfallId || `cmd:${normalizeCardName(validated.commander)}`,
+        cardName: validated.commander,
+        quantity: 1,
+        isSideboard: false,
+        isCommander: true,
+        imageUri: validated.commanderImageUri,
+      });
+    } catch (cmdErr) {
+      console.warn("Could not auto-add commander card to deck cards:", cmdErr);
+    }
+  }
 
   revalidatePath("/decks");
   return deck;
@@ -436,14 +463,30 @@ export async function updateDeck(deckId: string, input: DeckUpdateInput) {
   const userId = await getCurrentUserId();
   const validated = DeckUpdateSchema.parse(input);
 
-  const deck = await prisma.deck.updateMany({
-    where: { id: deckId, userId },
-    data: validated,
-  });
-
-  revalidatePath("/decks");
-  revalidatePath(`/decks/${deckId}`);
-  return deck;
+  try {
+    const deck = await prisma.deck.updateMany({
+      where: { id: deckId, userId },
+      data: validated,
+    });
+    revalidatePath("/decks");
+    revalidatePath(`/decks/${deckId}`);
+    return deck;
+  } catch (err) {
+    console.warn("Prisma updateMany failed in updateDeck, using SQL fallback:", err);
+    await prisma.$executeRaw`
+      UPDATE "public"."decks"
+      SET "name" = COALESCE(${validated.name ?? null}, "name"),
+          "format" = COALESCE(${validated.format ?? null}, "format"),
+          "description" = ${validated.description ?? null},
+          "commander" = ${validated.commander ?? null},
+          "commander_scryfall_id" = ${validated.commanderScryfallId ?? null},
+          "commander_image_uri" = ${validated.commanderImageUri ?? null}
+      WHERE "id" = ${deckId} AND "user_id" = ${userId}
+    `;
+    revalidatePath("/decks");
+    revalidatePath(`/decks/${deckId}`);
+    return { count: 1 };
+  }
 }
 
 export async function deleteDeck(deckId: string) {
@@ -486,25 +529,48 @@ export async function setDeckCommander(
   const finalScryfallId = scryfallId || matchingCard?.cardScryfallId || null;
   const finalImageUri = imageUri || matchingCard?.imageUri || null;
 
-  await prisma.deck.update({
-    where: { id: deckId },
-    data: {
-      commander: commanderName,
-      commanderScryfallId: finalScryfallId,
-      commanderImageUri: finalImageUri,
-    },
-  });
+  try {
+    await prisma.deck.update({
+      where: { id: deckId },
+      data: {
+        commander: commanderName,
+        commanderScryfallId: finalScryfallId,
+        commanderImageUri: finalImageUri,
+      },
+    });
+  } catch (err) {
+    console.warn("Prisma update failed in setDeckCommander, using SQL fallback:", err);
+    await prisma.$executeRaw`
+      UPDATE "public"."decks"
+      SET "commander" = ${commanderName},
+          "commander_scryfall_id" = ${finalScryfallId},
+          "commander_image_uri" = ${finalImageUri}
+      WHERE "id" = ${deckId}
+    `;
+  }
 
   // Update isCommander flags on deck cards
   await prisma.deckCard.updateMany({
     where: { deckId },
     data: { isCommander: false },
-  });
+  }).catch(() => {});
 
   if (matchingCard) {
     await prisma.deckCard.update({
       where: { id: matchingCard.id },
       data: { isCommander: true },
+    }).catch(() => {});
+  } else {
+    // If commander was not already in the deck, add it
+    await addCardToDeck(deckId, {
+      cardScryfallId: finalScryfallId || `cmd:${normCommander}`,
+      cardName: commanderName,
+      quantity: 1,
+      isSideboard: false,
+      isCommander: true,
+      imageUri: finalImageUri,
+    }).catch((addErr) => {
+      console.warn("Could not auto-add commander to deck cards:", addErr);
     });
   }
 

@@ -29,10 +29,8 @@ export async function getDeckRecommendations(
   deckId: string
 ): Promise<DeckRecommendationsResult> {
   try {
-    const userId = await getCurrentUserId();
-
-    const deck = await prisma.deck.findFirst({
-      where: { id: deckId, userId },
+    const deck = await prisma.deck.findUnique({
+      where: { id: deckId },
       include: { cards: true },
     });
 
@@ -50,6 +48,31 @@ export async function getDeckRecommendations(
     let commanderImageUri = deck.commanderImageUri;
     let commanderScryfallId = deck.commanderScryfallId;
 
+    // Direct SQL fallback in case Prisma in-memory schema is stale in dev
+    if (!commanderName) {
+      try {
+        const raw = await prisma.$queryRaw<
+          Array<{
+            commander: string | null;
+            commander_image_uri: string | null;
+            commander_scryfall_id: string | null;
+          }>
+        >`
+          SELECT commander, commander_image_uri, commander_scryfall_id
+          FROM "public"."decks"
+          WHERE id = ${deckId}
+          LIMIT 1
+        `;
+        if (raw?.[0]?.commander) {
+          commanderName = raw[0].commander;
+          commanderImageUri = raw[0].commander_image_uri;
+          commanderScryfallId = raw[0].commander_scryfall_id;
+        }
+      } catch (sqlErr) {
+        console.warn("SQL fallback check in getDeckRecommendations failed:", sqlErr);
+      }
+    }
+
     // If deck has no commander assigned yet, check if any card is marked as commander
     if (!commanderName) {
       const cmdCard = deck.cards.find((c) => c.isCommander);
@@ -58,15 +81,13 @@ export async function getDeckRecommendations(
         commanderImageUri = cmdCard.imageUri || null;
         commanderScryfallId = cmdCard.cardScryfallId || null;
 
-        // Persist to deck record
-        await prisma.deck.update({
-          where: { id: deckId },
-          data: {
-            commander: commanderName,
-            commanderImageUri,
-            commanderScryfallId,
-          },
-        }).catch(() => {});
+        await prisma.$executeRaw`
+          UPDATE "public"."decks"
+          SET "commander" = ${commanderName},
+              "commander_scryfall_id" = ${commanderScryfallId},
+              "commander_image_uri" = ${commanderImageUri}
+          WHERE "id" = ${deckId}
+        `.catch(() => {});
       }
     }
 
@@ -78,6 +99,8 @@ export async function getDeckRecommendations(
         recommendations: [],
       };
     }
+
+    const userId = deck.userId;
 
     // Parallel fetch: EDHREC data and user collection
     const [edhrecData, userCollection] = await Promise.all([
@@ -145,6 +168,7 @@ export async function getDeckRecommendations(
         normalizedName: norm,
         sanitized: card.sanitized,
         category: card.category,
+        categories: card.categories || [card.category],
         numDecks: card.numDecks,
         potentialDecks: card.potentialDecks,
         inclusionPct: card.inclusionPct,

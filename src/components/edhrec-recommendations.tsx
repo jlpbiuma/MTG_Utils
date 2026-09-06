@@ -178,7 +178,11 @@ export function EdhrecRecommendations({
       }
 
       // 2. Category
-      if (selectedCategory !== "all" && card.category !== selectedCategory) {
+      if (
+        selectedCategory !== "all" &&
+        card.category !== selectedCategory &&
+        !card.categories?.includes(selectedCategory)
+      ) {
         return false;
       }
 
@@ -588,10 +592,14 @@ export function EdhrecRecommendations({
         <div className="p-12 text-center rounded-2xl bg-slate-900/40 border border-slate-800 space-y-3">
           <Sparkles className="w-8 h-8 mx-auto text-slate-600" />
           <p className="text-base font-semibold text-slate-300">
-            No se encontraron cartas con los filtros seleccionados
+            {recommendations.length === 0
+              ? "No se encontraron recomendaciones en EDHREC para este comandante"
+              : "No se encontraron cartas con los filtros seleccionados"}
           </p>
           <p className="text-xs text-slate-500">
-            Prueba a limpiar la búsqueda o cambiar la categoría/estado.
+            {recommendations.length === 0
+              ? "Asegúrate de que el nombre del comandante sea el nombre oficial en inglés."
+              : "Prueba a limpiar la búsqueda o cambiar la categoría/estado."}
           </p>
           {(searchQuery || selectedCategory !== "all" || statusFilter !== "all") && (
             <Button

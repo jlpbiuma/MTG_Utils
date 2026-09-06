@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Layers, Loader2 } from "lucide-react";
+import { Plus, Layers, Loader2, Crown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,7 @@ export function CreateDeckDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [format, setFormat] = useState("Commander / EDH");
+  const [commander, setCommander] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,15 +42,22 @@ export function CreateDeckDialog() {
       return;
     }
 
+    if (format.includes("Commander") && !commander.trim()) {
+      setError("El comandante es obligatorio para mazos de formato Commander.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
       await createDeck({
         name: name.trim(),
         format,
+        commander: commander.trim() || undefined,
         description: description.trim() || undefined,
       });
       setName("");
+      setCommander("");
       setDescription("");
       setOpen(false);
     } catch (err: unknown) {
@@ -110,6 +118,25 @@ export function CreateDeckDialog() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+              <Crown className="w-3.5 h-3.5 text-amber-400" />
+              Comandante {format.includes("Commander") ? "*" : "(Opcional)"}
+            </label>
+            <Input
+              placeholder="ej: Aragorn, the Uniter / Atraxa, Praetors' Voice"
+              value={commander}
+              onChange={(e) => setCommander(e.target.value)}
+              className="bg-slate-950 border-slate-700 focus:border-amber-400"
+              required={format.includes("Commander")}
+            />
+            <p className="text-[11px] text-slate-400">
+              {format.includes("Commander")
+                ? "Obligatorio para recomendaciones de EDHREC y análisis de comunidad."
+                : "Opcional para formatos no-Commander."}
+            </p>
           </div>
 
           <div className="space-y-1.5">
