@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { updateDeck } from "@/actions/decks";
+import { updateDeck, setDeckCommander } from "@/actions/decks";
+import { Crown } from "lucide-react";
 
 const MTG_FORMATS = [
   "Commander / EDH",
@@ -32,15 +33,23 @@ interface EditDeckDialogProps {
     name: string;
     format: string;
     description?: string | null;
+    commander?: string | null;
   };
-  onUpdated?: (updated: { name: string; format: string; description: string | null }) => void;
+  deckCards?: Array<{ cardName: string; typeLine?: string | null }>;
+  onUpdated?: (updated: {
+    name: string;
+    format: string;
+    description: string | null;
+    commander?: string | null;
+  }) => void;
   trigger?: React.ReactNode;
 }
 
-export function EditDeckDialog({ deck, onUpdated, trigger }: EditDeckDialogProps) {
+export function EditDeckDialog({ deck, deckCards, onUpdated, trigger }: EditDeckDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(deck.name);
   const [format, setFormat] = useState(deck.format || "Commander / EDH");
+  const [commander, setCommander] = useState(deck.commander || "");
   const [description, setDescription] = useState(deck.description || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +59,7 @@ export function EditDeckDialog({ deck, onUpdated, trigger }: EditDeckDialogProps
     if (open) {
       setName(deck.name);
       setFormat(deck.format || "Commander / EDH");
+      setCommander(deck.commander || "");
       setDescription(deck.description || "");
       setError(null);
     }
@@ -67,17 +77,24 @@ export function EditDeckDialog({ deck, onUpdated, trigger }: EditDeckDialogProps
     try {
       const trimmedName = name.trim();
       const trimmedDesc = description.trim() || null;
+      const trimmedCommander = commander.trim() || null;
 
       await updateDeck(deck.id, {
         name: trimmedName,
         format,
         description: trimmedDesc || undefined,
+        commander: trimmedCommander || undefined,
       });
+
+      if (trimmedCommander && trimmedCommander !== deck.commander) {
+        await setDeckCommander(deck.id, trimmedCommander);
+      }
 
       onUpdated?.({
         name: trimmedName,
         format,
         description: trimmedDesc,
+        commander: trimmedCommander,
       });
 
       setOpen(false);
@@ -148,6 +165,48 @@ export function EditDeckDialog({ deck, onUpdated, trigger }: EditDeckDialogProps
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold uppercase tracking-wider text-amber-300 flex items-center gap-1">
+                <Crown className="w-3.5 h-3.5 text-amber-400" />
+                Comandante {format.toLowerCase().includes("commander") ? "(Obligatorio)" : "(Opcional)"}
+              </label>
+              {commander && (
+                <button
+                  type="button"
+                  onClick={() => setCommander("")}
+                  className="text-[10px] text-slate-500 hover:text-rose-400 underline"
+                >
+                  Quitar
+                </button>
+              )}
+            </div>
+            <Input
+              list="commander-suggestions"
+              placeholder="ej: Aragorn, the Uniter"
+              value={commander}
+              onChange={(e) => setCommander(e.target.value)}
+              className="bg-slate-950 border-slate-700 focus:border-amber-400"
+            />
+            {deckCards && deckCards.length > 0 && (
+              <datalist id="commander-suggestions">
+                {deckCards
+                  .filter((c) =>
+                    c.typeLine?.toLowerCase().includes("legendary") ||
+                    c.typeLine?.toLowerCase().includes("creature")
+                  )
+                  .map((c) => (
+                    <option key={c.cardName} value={c.cardName}>
+                      {c.cardName}
+                    </option>
+                  ))}
+              </datalist>
+            )}
+            <p className="text-[11px] text-slate-500">
+              Necesario para consultar sugerencias y estadísticas de comunidad en EDHREC.
+            </p>
           </div>
 
           <div className="space-y-1.5">

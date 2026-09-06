@@ -75,6 +75,9 @@ export async function getDecksWithCompletion(): Promise<DeckWithCompletion[]> {
         name: deck.name,
         format: deck.format,
         description: deck.description,
+        commander: deck.commander,
+        commanderScryfallId: deck.commanderScryfallId,
+        commanderImageUri: deck.commanderImageUri,
         createdAt: deck.createdAt,
         updatedAt: deck.updatedAt,
         totalCards,
@@ -298,7 +301,7 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
 
 
   for (const ac of allAssignedDeckCards) {
-    const norm = ac.cardName.toLowerCase().trim().split(" // ")[0];
+    const norm = normalizeCardName(ac.cardName);
     const item = {
       deckId: ac.deck.id,
       deckName: ac.deck.name,
@@ -322,7 +325,7 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
 
   let ownedCards = 0;
   const cardsWithOwnership: DeckCardWithOwnership[] = deck.cards.map((c) => {
-    const norm = c.cardName.toLowerCase().trim().split(" // ")[0];
+    const norm = normalizeCardName(c.cardName);
     const ownedInCollection =
       collectionMaps.byId.get(c.cardScryfallId) || collectionMaps.byName.get(norm) || 0;
     const effectiveOwned = Math.min(ownedInCollection, c.quantity);
@@ -361,6 +364,10 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
     // Assigned in OTHER decks (excluding this deck)
     const assignedInOtherDecks = distinctAssignments.filter((a) => a.deckId !== deckId);
 
+    const isCommander =
+      c.isCommander ||
+      (deck.commander ? normalizeCardName(c.cardName) === normalizeCardName(deck.commander) : false);
+
     return {
       id: c.id,
       deckId: c.deckId,
@@ -369,6 +376,7 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
       quantity: c.quantity,
       assignedQuantity: thisDeckAssignments.get(c.id) ?? (c as any).assignedQuantity ?? 0,
       isSideboard: c.isSideboard,
+      isCommander,
       manaCost: c.manaCost,
       typeLine: c.typeLine,
       imageUri: c.imageUri,
@@ -389,6 +397,9 @@ export async function getDeckDetail(deckId: string): Promise<DeckDetailWithStats
     name: deck.name,
     format: deck.format,
     description: deck.description,
+    commander: deck.commander,
+    commanderScryfallId: deck.commanderScryfallId,
+    commanderImageUri: deck.commanderImageUri,
     createdAt: deck.createdAt,
     updatedAt: deck.updatedAt,
     totalCards,
@@ -411,6 +422,9 @@ export async function createDeck(input: DeckCreateInput) {
       name: validated.name,
       format: validated.format,
       description: validated.description,
+      commander: validated.commander,
+      commanderScryfallId: validated.commanderScryfallId,
+      commanderImageUri: validated.commanderImageUri,
     },
   });
 
@@ -435,11 +449,73 @@ export async function updateDeck(deckId: string, input: DeckUpdateInput) {
 export async function deleteDeck(deckId: string) {
   const userId = await getCurrentUserId();
 
-  await prisma.deck.deleteMany({
+  const deck = await prisma.deck.findFirst({
     where: { id: deckId, userId },
   });
 
+  if (!deck) throw new Error("Mazo no encontrado");
+
+  await prisma.deck.delete({
+    where: { id: deckId },
+  });
+
   revalidatePath("/decks");
+  return { success: true };
+}
+
+export async function setDeckCommander(
+  deckId: string,
+  commanderName: string,
+  scryfallId?: string,
+  imageUri?: string
+) {
+  const userId = await getCurrentUserId();
+
+  const deck = await prisma.deck.findFirst({
+    where: { id: deckId, userId },
+    include: { cards: true },
+  });
+
+  if (!deck) throw new Error("Mazo no encontrado");
+
+  const normCommander = normalizeCardName(commanderName);
+  const matchingCard = deck.cards.find(
+    (c) => normalizeCardName(c.cardName) === normCommander
+  );
+
+  const finalScryfallId = scryfallId || matchingCard?.cardScryfallId || null;
+  const finalImageUri = imageUri || matchingCard?.imageUri || null;
+
+  await prisma.deck.update({
+    where: { id: deckId },
+    data: {
+      commander: commanderName,
+      commanderScryfallId: finalScryfallId,
+      commanderImageUri: finalImageUri,
+    },
+  });
+
+  // Update isCommander flags on deck cards
+  await prisma.deckCard.updateMany({
+    where: { deckId },
+    data: { isCommander: false },
+  });
+
+  if (matchingCard) {
+    await prisma.deckCard.update({
+      where: { id: matchingCard.id },
+      data: { isCommander: true },
+    });
+  }
+
+  revalidatePath("/decks");
+  revalidatePath(`/decks/${deckId}`);
+
+  return {
+    commander: commanderName,
+    commanderScryfallId: finalScryfallId,
+    commanderImageUri: finalImageUri,
+  };
 }
 
 export async function addCardToDeck(deckId: string, input: DeckCardCreateInput) {

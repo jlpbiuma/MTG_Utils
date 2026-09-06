@@ -10,14 +10,17 @@ generator client {
 }
 
 model Deck {
-  id          String     @id @default(uuid())
-  userId      String     @map("user_id")
-  name        String
-  format      String     @default("Commander")
-  description String?
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
-  cards       DeckCard[]
+  id                  String     @id @default(uuid())
+  userId              String     @map("user_id")
+  name                String
+  format              String     @default("Commander")
+  description         String?
+  commander           String?
+  commanderScryfallId String?    @map("commander_scryfall_id")
+  commanderImageUri   String?    @map("commander_image_uri")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+  cards               DeckCard[]
 
   @@index([userId])
   @@map("decks")
@@ -31,6 +34,7 @@ model DeckCard {
   quantity         Int     @default(1)
   assignedQuantity Int     @default(0) @map("assigned_quantity")
   isSideboard      Boolean @default(false) @map("is_sideboard")
+  isCommander      Boolean @default(false) @map("is_commander")
   manaCost         String? @map("mana_cost")
   typeLine         String? @map("type_line")
   imageUri         String? @map("image_uri")

@@ -4,12 +4,18 @@ export const DeckCreateSchema = z.object({
   name: z.string().min(1, "El nombre del mazo es obligatorio").max(100),
   format: z.string().default("Commander"),
   description: z.string().optional(),
+  commander: z.string().optional(),
+  commanderScryfallId: z.string().optional(),
+  commanderImageUri: z.string().optional(),
 });
 
 export const DeckUpdateSchema = z.object({
   name: z.string().min(1, "El nombre del mazo no puede estar vacío").max(100).optional(),
   format: z.string().optional(),
   description: z.string().optional(),
+  commander: z.string().optional(),
+  commanderScryfallId: z.string().optional(),
+  commanderImageUri: z.string().optional(),
 });
 
 export const DeckCardCreateSchema = z.object({
@@ -17,6 +23,7 @@ export const DeckCardCreateSchema = z.object({
   cardName: z.string().min(1),
   quantity: z.number().int().min(1).default(1),
   isSideboard: z.boolean().default(false),
+  isCommander: z.boolean().optional().default(false),
   manaCost: z.string().nullable().optional(),
   typeLine: z.string().nullable().optional(),
   imageUri: z.string().nullable().optional(),
@@ -33,10 +40,10 @@ export const CollectionCardCreateSchema = z.object({
   imageUri: z.string().nullable().optional(),
 });
 
-export type DeckCreateInput = z.infer<typeof DeckCreateSchema>;
-export type DeckUpdateInput = z.infer<typeof DeckUpdateSchema>;
-export type DeckCardCreateInput = z.infer<typeof DeckCardCreateSchema>;
-export type CollectionCardCreateInput = z.infer<typeof CollectionCardCreateSchema>;
+export type DeckCreateInput = z.input<typeof DeckCreateSchema>;
+export type DeckUpdateInput = z.input<typeof DeckUpdateSchema>;
+export type DeckCardCreateInput = z.input<typeof DeckCardCreateSchema>;
+export type CollectionCardCreateInput = z.input<typeof CollectionCardCreateSchema>;
 
 export interface DeckWithCompletion {
   id: string;
@@ -44,6 +51,9 @@ export interface DeckWithCompletion {
   name: string;
   format: string;
   description: string | null;
+  commander: string | null;
+  commanderScryfallId: string | null;
+  commanderImageUri: string | null;
   createdAt: Date;
   updatedAt: Date;
   totalCards: number;
@@ -67,6 +77,7 @@ export interface DeckCardWithOwnership {
   quantity: number;
   assignedQuantity: number;
   isSideboard: boolean;
+  isCommander?: boolean;
   manaCost: string | null;
   typeLine: string | null;
   imageUri: string | null;
@@ -78,5 +89,21 @@ export interface DeckCardWithOwnership {
 
 export interface DeckDetailWithStats extends DeckWithCompletion {
   cards: DeckCardWithOwnership[];
+}
+
+export interface EdhrecCardRecommendation {
+  id: string; // Scryfall UUID
+  name: string;
+  normalizedName: string;
+  sanitized: string;
+  category: string; // e.g. "High Synergy Cards", "Top Cards", "Creatures", "Instants", etc.
+  numDecks: number;
+  potentialDecks: number;
+  inclusionPct: number; // e.g. 91.4%
+  synergy: number; // e.g. +37.8%
+  imageUri: string | null;
+  isInDeck: boolean;
+  isInCollection: boolean;
+  collectionQuantity: number;
 }
 
