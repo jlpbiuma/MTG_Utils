@@ -2,7 +2,8 @@ import { PriceProvider, PriceSummary, CardPriceQuote, PRICE_PROVIDERS } from "./
 import { calculateCardmarketQuote, RawScryfallPriceData } from "./cardmarket";
 import { calculateCardTraderQuote } from "./cardtrader";
 import { calculateMTGGoldfishQuote } from "./mtggoldfish";
-import { normalizeCardName } from "@/lib/worker";
+import { normalizeCardName } from "@/lib/card-utils";
+
 
 const SCRYFALL_COLLECTION_URL = "https://api.scryfall.com/cards/collection";
 const SCRYFALL_HEADERS = {

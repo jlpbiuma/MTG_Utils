@@ -4,9 +4,10 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-if (!process.env.DATABASE_URL) {
+if (typeof window === "undefined" && !process.env.DATABASE_URL) {
   console.error("❌ CRITICAL: DATABASE_URL environment variable is not set! Ensure it is configured in your deployment settings (e.g. Netlify Environment Variables).");
 }
+
 
 // In development, HMR can preserve an outdated PrismaClient instance from before schema changes
 if (

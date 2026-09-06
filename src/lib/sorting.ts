@@ -1,5 +1,6 @@
-import { normalizeCardName } from "@/lib/worker";
+import { normalizeCardName } from "@/lib/card-utils";
 import { PriceSummary } from "@/lib/pricing";
+
 
 export type SortField = "name" | "price_trend" | "price_subtotal" | "cmc" | "type" | "quantity" | "status";
 export type SortDirection = "asc" | "desc";

@@ -37,7 +37,9 @@ import { PricingProviderSelector } from "@/components/pricing-provider-selector"
 import { PriceBadge } from "@/components/price-badge";
 import { CardSortingBar } from "@/components/card-sorting-bar";
 import { SortField, SortDirection, sortCards } from "@/lib/sorting";
-import { normalizeCardName } from "@/lib/worker";
+import { normalizeCardName } from "@/lib/card-utils";
+
+
 
 interface DeckDetailViewProps {
   initialDeck: DeckDetailWithStats;

@@ -1,4 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { normalizeCardName } from "@/lib/card-utils";
+
+export { normalizeCardName };
 
 const SCRYFALL_COLLECTION_URL = "https://api.scryfall.com/cards/collection";
 const SCRYFALL_HEADERS = {
@@ -9,13 +12,7 @@ const SCRYFALL_HEADERS = {
 
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export function normalizeCardName(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, " ")
-    .split(" // ")[0]; // Front face for dual/split cards
-}
+
 
 export interface WorkerEnrichmentResult {
   totalPending: number;

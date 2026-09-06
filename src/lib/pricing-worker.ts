@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { normalizeCardName } from "@/lib/worker";
+import { normalizeCardName } from "@/lib/card-utils";
+
 import { calculateCardmarketQuote } from "@/lib/pricing/cardmarket";
 import { calculateCardTraderQuote } from "@/lib/pricing/cardtrader";
 import { calculateMTGGoldfishQuote } from "@/lib/pricing/mtggoldfish";

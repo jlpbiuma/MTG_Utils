@@ -32,7 +32,8 @@ import {
   triggerWeeklyCollectionPricing,
   getCollectionPricesLastUpdated,
 } from "@/actions/pricing";
-import { normalizeCardName } from "@/lib/worker";
+import { normalizeCardName } from "@/lib/card-utils";
+
 
 interface CollectionItem {
   id: string;
