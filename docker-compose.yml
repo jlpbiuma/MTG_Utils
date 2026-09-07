@@ -21,6 +21,30 @@ services:
     networks:
       - mtg-network
 
+  pricing-worker:
+    build:
+      context: ./pricing_worker
+      dockerfile: Dockerfile
+    container_name: mtg-utils-pricing-worker
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
+      - DIRECT_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
+      - UPDATE_INTERVAL_SECONDS=21600
+      - RUN_ON_STARTUP=true
+      - RATE_LIMIT_DELAY_SECONDS=0.1
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./pricing_worker/src:/app/src
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mtg-network
+
   frontend:
     build:
       context: ./frontend

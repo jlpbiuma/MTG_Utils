@@ -7,4 +7,7 @@
 [submodule "frontend_swift"]
 	path = frontend_swift
 	url = ./frontend_swift
+[submodule "pricing_worker"]
+	path = pricing_worker
+	url = ./pricing_worker
 
