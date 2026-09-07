@@ -9,7 +9,6 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
-      - DIRECT_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
     env_file:
       - ./backend/.env
     volumes:
@@ -31,7 +30,6 @@ services:
       - "8001:8001"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
-      - DIRECT_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
       - UPDATE_INTERVAL_SECONDS=21600
       - RUN_ON_STARTUP=true
       - RATE_LIMIT_DELAY_SECONDS=0.1
@@ -60,7 +58,6 @@ services:
       - HOSTNAME=0.0.0.0
       - BACKEND_URL=http://backend:8000
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
-      - DIRECT_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
     env_file:
       - ./frontend/.env
     volumes:
