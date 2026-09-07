@@ -43,3 +43,6 @@ next-env.d.ts
 
 # local data
 /data
+node_modules/
+dist/
+.env

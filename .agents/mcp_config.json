@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "prisma": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "prisma",
+        "mcp"
+      ],
+      "cwd": "/Users/icedeal/projects/MTG_utils/frontend",
+      "env": {
+        "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/mtg_utils?schema=public"
+      }
+    }
+  }
+}
