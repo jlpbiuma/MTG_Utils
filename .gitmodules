@@ -10,4 +10,6 @@
 [submodule "pricing_worker"]
 	path = pricing_worker
 	url = ./pricing_worker
-
+[submodule "set_worker"]
+	path = set_worker
+	url = ./set_worker

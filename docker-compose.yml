@@ -43,6 +43,30 @@ services:
     networks:
       - mtg-network
 
+  set-worker:
+    build:
+      context: ./set_worker
+      dockerfile: Dockerfile
+    container_name: mtg-utils-set-worker
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
+      - UPDATE_INTERVAL_SECONDS=1800
+      - SETS_PER_CYCLE=2
+      - RUN_ON_STARTUP=true
+      - RATE_LIMIT_DELAY_SECONDS=0.1
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./set_worker/src:/app/src
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mtg-network
+
   frontend:
     build:
       context: ./frontend
