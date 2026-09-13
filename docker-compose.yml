@@ -9,6 +9,7 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
+      - WORKER_URL=http://worker:8001
     env_file:
       - ./backend/.env
     volumes:
@@ -17,53 +18,77 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - mtg-network
 
-  pricing-worker:
+  worker:
     build:
-      context: ./pricing_worker
+      context: ./worker
       dockerfile: Dockerfile
-    container_name: mtg-utils-pricing-worker
+    container_name: mtg-utils-worker
     restart: unless-stopped
     ports:
       - "8001:8001"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
-      - UPDATE_INTERVAL_SECONDS=21600
+      - UPDATE_INTERVAL_SECONDS=300
+      - SETS_PER_CYCLE=1
       - RUN_ON_STARTUP=true
-      - RATE_LIMIT_DELAY_SECONDS=0.1
+      - RATE_LIMIT_DELAY_SECONDS=0.15
+      - SCRYFALL_BULK_ENABLED=${SCRYFALL_BULK_ENABLED:-true}
+      - SCRYFALL_BULK_TYPE=${SCRYFALL_BULK_TYPE:-default_cards}
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-mtg-utils}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-change-this-minio-password}
+      - MINIO_BUCKET=${MINIO_BUCKET:-mtg-images}
+      - MINIO_SECURE=false
+      - PUBLIC_IMAGE_BASE_URL=${PUBLIC_IMAGE_BASE_URL:-http://localhost:8080/images}
+      - IMGPROXY_KEY=${IMGPROXY_KEY:-736f6d65333262797465736c6f6e676b6579666f726465766f6e6c79}
+      - IMGPROXY_SALT=${IMGPROXY_SALT:-736f6d65333262797465736c6f6e6773616c74666f726465766f6e6c79}
+      - IMAGE_BACKFILL_PER_CYCLE=500
+      - IMAGE_DOWNLOAD_CONCURRENCY=6
+      - PRICE_SYNC_INTERVAL_DAYS=7
+      - PRICE_SYNC_BATCH_SIZE=75
+      - PRICE_CHANGE_THRESHOLD=0.025
+      - TOR_ENABLED=true
+      - TOR_SOCKS_PROXY=socks5://tor:9050
+      - TOR_CONTROL_HOST=tor
+      - TOR_CONTROL_PORT=9051
+      - TOR_CONTROL_PASSWORD=mtg-utils-tor-control
     env_file:
       - ./backend/.env
     volumes:
-      - ./pricing_worker/src:/app/src
+      - ./worker/src:/app/src
     depends_on:
+      backend:
+        condition: service_healthy
       db:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      tor:
         condition: service_healthy
     networks:
       - mtg-network
 
-  set-worker:
+  tor:
     build:
-      context: ./set_worker
+      context: ./docker/tor
       dockerfile: Dockerfile
-    container_name: mtg-utils-set-worker
+    container_name: mtg-utils-tor
     restart: unless-stopped
-    ports:
-      - "8002:8002"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
-      - UPDATE_INTERVAL_SECONDS=1800
-      - SETS_PER_CYCLE=2
-      - RUN_ON_STARTUP=true
-      - RATE_LIMIT_DELAY_SECONDS=0.1
-    env_file:
-      - ./backend/.env
-    volumes:
-      - ./set_worker/src:/app/src
-    depends_on:
-      db:
-        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 9050"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
     networks:
       - mtg-network
 
@@ -71,27 +96,26 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: dev
+      args:
+        IMAGE_SERVICE_URL: http://nginx:80
     container_name: mtg-utils-frontend
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=3000
       - HOSTNAME=0.0.0.0
       - BACKEND_URL=http://backend:8000
+      - IMAGE_SERVICE_URL=http://nginx:80
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
     env_file:
       - ./frontend/.env
-    volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
-      - ./frontend/package.json:/app/package.json
-      - /app/node_modules
-      - /app/.next
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+      nginx:
+        condition: service_started
     networks:
       - mtg-network
 
@@ -115,8 +139,87 @@ services:
     networks:
       - mtg-network
 
+  minio:
+    build:
+      context: ./docker/minio
+      dockerfile: Dockerfile
+    container_name: mtg-utils-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-mtg-utils}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-this-minio-password}
+    ports:
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - mtg-network
+
+  minio-init:
+    build:
+      context: ./docker/minio-init
+      dockerfile: Dockerfile
+    container_name: mtg-utils-minio-init
+    restart: "no"
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-mtg-utils}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-this-minio-password}
+      MINIO_BUCKET: ${MINIO_BUCKET:-mtg-images}
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - mtg-network
+
+  imgproxy:
+    build:
+      context: ./docker/imgproxy
+      dockerfile: Dockerfile
+    container_name: mtg-utils-imgproxy
+    restart: unless-stopped
+    environment:
+      IMGPROXY_KEY: ${IMGPROXY_KEY:-736f6d65333262797465736c6f6e676b6579666f726465766f6e6c79}
+      IMGPROXY_SALT: ${IMGPROXY_SALT:-736f6d65333262797465736c6f6e6773616c74666f726465766f6e6c79}
+      IMGPROXY_USE_S3: "true"
+      IMGPROXY_S3_ENDPOINT: http://minio:9000
+      IMGPROXY_S3_REGION: us-east-1
+      IMGPROXY_S3_ENDPOINT_USE_PATH_STYLE: "true"
+      IMGPROXY_S3_ALLOWED_BUCKETS: ${MINIO_BUCKET:-mtg-images}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-mtg-utils}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-change-this-minio-password}
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    networks:
+      - mtg-network
+
+  nginx:
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    container_name: mtg-utils-nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - nginx_image_cache:/var/cache/nginx/imgproxy
+    depends_on:
+      - imgproxy
+    networks:
+      - mtg-network
+
 volumes:
   postgres_data:
+    driver: local
+  minio_data:
+    driver: local
+  nginx_image_cache:
     driver: local
 
 networks:

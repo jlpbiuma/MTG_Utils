@@ -1,12 +1,13 @@
 [submodule "frontend"]
 	path = frontend
-	url = ./frontend
+	url = https://github.com/jlpbiuma/MTG_Utils_Frontend.git
 [submodule "backend"]
 	path = backend
-	url = ./backend
+	url = https://github.com/jlpbiuma/MTG_Utils_Backend.git
 [submodule "frontend_swift"]
 	path = frontend_swift
-	url = ./frontend_swift
-[submodule "set_worker"]
+	url = https://github.com/jlpbiuma/MTG_Utils_Frontend_Swift.git
+
+[submodule "worker"]
 	path = worker
-	url = ./set_worker
+	url = https://github.com/jlpbiuma/MTG_Utils_Worker.git
