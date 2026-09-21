@@ -53,6 +53,7 @@ services:
       - IMGPROXY_SALT=${IMGPROXY_SALT:-736f6d65333262797465736c6f6e6773616c74666f726465766f6e6c79}
       - IMAGE_BACKFILL_PER_CYCLE=500
       - IMAGE_DOWNLOAD_CONCURRENCY=6
+      - ENRICH_CONCURRENCY=4
       - PRICE_SYNC_INTERVAL_DAYS=7
       - PRICE_SYNC_BATCH_SIZE=75
       - PRICE_CHANGE_THRESHOLD=0.025
@@ -206,7 +207,7 @@ services:
     container_name: mtg-utils-nginx
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "${NGINX_PORT:-8080}:80"
     volumes:
       - nginx_image_cache:/var/cache/nginx/imgproxy
     depends_on:
