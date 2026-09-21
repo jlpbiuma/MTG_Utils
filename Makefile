@@ -10,7 +10,7 @@ REMOTE_USER ?= icedeal
 REMOTE_DIR  ?= /home/icedeal/compose/mtg-utils
 
 .PHONY: help check-remote prepare-env sync-code remote-build init-db \
-        sync-catalog sync-media start-services verify deploy-full \
+        sync-catalog sync-media start-services verify migrate-db deploy-full \
         deploy-update status remote-logs remote-down
 
 help:
@@ -26,6 +26,7 @@ help:
 	@echo "  make sync-code        - Sincroniza código fuente con $(REMOTE_HOST) (rsync)"
 	@echo "  make remote-build     - Compila las imágenes en el servidor remoto (x86_64)"
 	@echo "  make init-db          - Levanta servicios base e inicializa esquema Prisma"
+	@echo "  make migrate-db       - Aplica migraciones Prisma (generate + db push) en remoto"
 	@echo "  make sync-catalog     - Migra datos del catálogo (12 tablas, sin datos de usuario)"
 	@echo "  make sync-media       - Migra 4.4 GB de imágenes y artes de MinIO"
 	@echo "  make start-services   - Arranca todos los servicios y el worker en producción"
@@ -33,7 +34,7 @@ help:
 	@echo ""
 	@echo "Flujos de despliegue completos:"
 	@echo "  make deploy-full      - Ejecuta la migración inicial completa paso a paso"
-	@echo "  make deploy-update    - CD habitual: Sincroniza código, compila y reinicia"
+	@echo "  make deploy-update    - CD habitual: sync, build, migraciones, reinicio y verify"
 	@echo "  make remote-logs      - Muestra los logs en vivo de los contenedores remotos"
 	@echo "  make remote-down      - Detiene los contenedores de producción"
 	@echo "=================================================================="
@@ -54,6 +55,9 @@ remote-build:
 init-db:
 	@./scripts/deploy/04_init_database.sh
 
+migrate-db:
+	@./scripts/deploy/09_migrate_database.sh
+
 sync-catalog:
 	@./scripts/deploy/05_migrate_catalog.sh
 
@@ -70,7 +74,7 @@ deploy-full: check-remote prepare-env sync-code remote-build init-db sync-catalo
 	@echo ""
 	@echo "🎉 ¡Migración y despliegue inicial completados con éxito en http://$(REMOTE_HOST):3000 !"
 
-deploy-update: sync-code remote-build start-services verify
+deploy-update: sync-code remote-build migrate-db start-services verify
 	@echo ""
 	@echo "🚀 ¡Actualización continua (CD) completada exitosamente!"
 
