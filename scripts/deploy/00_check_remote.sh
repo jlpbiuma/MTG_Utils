@@ -39,27 +39,4 @@ run_ssh '
     fi
 '
 
-log_info "Comprobando disponibilidad de puertos en ${REMOTE_HOST}..."
-PORTS_TO_CHECK=("${PROD_FRONTEND_PORT}" "${PROD_BACKEND_PORT}" "${PROD_WORKER_PORT}" "${PROD_NGINX_PORT}" "5432" "9001")
-BUSY_PORTS=0
-
-for port in "${PORTS_TO_CHECK[@]}"; do
-    if run_ssh "nc -z 127.0.0.1 $port" 2>/dev/null; then
-        log_error "Puerto $port en ${REMOTE_HOST} está OCUPADO."
-        BUSY_PORTS=$((BUSY_PORTS + 1))
-    else
-        log_success "Puerto $port en ${REMOTE_HOST} está DISPONIBLE."
-    fi
-done
-
-# Notificar estado del puerto 8080 (gluetun)
-if run_ssh "nc -z 127.0.0.1 8080" 2>/dev/null; then
-    log_info "Nota: El puerto 8080 está en uso por gluetun en el servidor. Por eso usamos NGINX_PORT=${PROD_NGINX_PORT}."
-fi
-
-if [ "$BUSY_PORTS" -gt 0 ]; then
-    log_error "Hay puertos en conflicto. Por favor revisa la configuración antes de continuar."
-    exit 1
-fi
-
 log_success "Todas las comprobaciones previas en ${REMOTE_HOST} pasaron correctamente."

@@ -11,7 +11,7 @@ REMOTE_DIR  ?= /home/icedeal/compose/mtg-utils
 
 .PHONY: help check-remote prepare-env sync-code remote-build init-db \
         sync-catalog sync-media start-services verify migrate-db deploy-full \
-        deploy-update status remote-logs remote-down
+        deploy-update status remote-logs remote-down baseline-db
 
 help:
 	@echo ""
@@ -25,15 +25,16 @@ help:
 	@echo "  make prepare-env      - Genera los archivos .env de producción"
 	@echo "  make sync-code        - Sincroniza código fuente con $(REMOTE_HOST) (rsync)"
 	@echo "  make remote-build     - Compila las imágenes en el servidor remoto (x86_64)"
-	@echo "  make init-db          - Levanta servicios base e inicializa esquema Prisma"
-	@echo "  make migrate-db       - Aplica migraciones Prisma (generate + db push) en remoto"
+	@echo "  make init-db          - Levanta infraestructura sin modificar el esquema"
+	@echo "  make migrate-db       - Aplica migraciones versionadas con prisma migrate deploy"
+	@echo "  make baseline-db      - Registra el esquema existente tras comprobar que coincide con 0_init"
 	@echo "  make sync-catalog     - Migra datos del catálogo (12 tablas, sin datos de usuario)"
 	@echo "  make sync-media       - Migra 4.4 GB de imágenes y artes de MinIO"
 	@echo "  make start-services   - Arranca todos los servicios y el worker en producción"
 	@echo "  make verify           - Ejecuta pruebas de salud sobre todos los servicios"
 	@echo ""
 	@echo "Flujos de despliegue completos:"
-	@echo "  make deploy-full      - Ejecuta la migración inicial completa paso a paso"
+	@echo "  make deploy-full      - Despliega servicios y migraciones, sin importar catálogo ni medios"
 	@echo "  make deploy-update    - CD habitual: sync, build, migraciones, reinicio y verify"
 	@echo "  make remote-logs      - Muestra los logs en vivo de los contenedores remotos"
 	@echo "  make remote-down      - Detiene los contenedores de producción"
@@ -58,6 +59,9 @@ init-db:
 migrate-db:
 	@./scripts/deploy/09_migrate_database.sh
 
+baseline-db:
+	@./scripts/deploy/10_baseline_database.sh
+
 sync-catalog:
 	@./scripts/deploy/05_migrate_catalog.sh
 
@@ -70,11 +74,24 @@ start-services:
 verify:
 	@./scripts/deploy/08_verify_health.sh
 
-deploy-full: check-remote prepare-env sync-code remote-build init-db sync-catalog sync-media start-services verify
+# Recipes keep the deployment sequential even when invoked with make -j.
+deploy-full:
+	@$(MAKE) check-remote
+	@$(MAKE) sync-code
+	@$(MAKE) remote-build
+	@$(MAKE) init-db
+	@$(MAKE) migrate-db
+	@$(MAKE) start-services
+	@$(MAKE) verify
 	@echo ""
-	@echo "🎉 ¡Migración y despliegue inicial completados con éxito en http://$(REMOTE_HOST):3000 !"
+	@echo "🎉 ¡Despliegue y migraciones completados con éxito en http://$(REMOTE_HOST):3000 !"
 
-deploy-update: sync-code remote-build migrate-db start-services verify
+deploy-update:
+	@$(MAKE) sync-code
+	@$(MAKE) remote-build
+	@$(MAKE) migrate-db
+	@$(MAKE) start-services
+	@$(MAKE) verify
 	@echo ""
 	@echo "🚀 ¡Actualización continua (CD) completada exitosamente!"
 

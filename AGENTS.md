@@ -80,10 +80,13 @@ copias ni las elimines como limpieza incidental.
   difieren. Para cambios de tablas compartidas, revisa los tres consumidores,
   actualiza los modelos afectados y regenera los clientes correspondientes.
 - Revisa las migraciones y SQL auxiliares de `backend/prisma/` antes de cambiar
-  persistencia o importación. El Dockerfile del backend ejecuta `db push
-  --accept-data-loss` y SQL de mantenimiento al arrancar: levantar/recrear ese
-  servicio puede modificar datos. No uses ese arranque como simple validación
-  de código contra una base con datos que deban conservarse.
+  persistencia o importación. El backend solo arranca la API; las migraciones
+  versionadas se aplican explícitamente mediante `make migrate-db` con
+  `prisma migrate deploy`. No reintroduzcas `db push --accept-data-loss` en el
+  arranque. `deploy-full` no importa ni vacía el catálogo. La migración `0_init`
+  crea el esquema completo en bases vacías; `make baseline-db` permite registrar
+  una base existente solo si coincide con su esquema. Revisa
+  `scripts/deploy/README.md` antes de establecer un baseline.
 - Conserva los límites, reintentos y tratamiento de HTTP 429 del cliente Scryfall
   del worker. Las pruebas ordinarias deben usar mocks; los benchmarks live y las
   sincronizaciones masivas son operaciones independientes.
