@@ -11,3 +11,6 @@
 [submodule "worker"]
 	path = worker
 	url = https://github.com/jlpbiuma/MTG_Utils_Worker.git
+[submodule "worker_whatsapp"]
+	path = worker_whatsapp
+	url = https://github.com/jlpbiuma/MTG_Utils_Whatsapp_bot.git
