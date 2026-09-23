@@ -19,7 +19,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -79,6 +79,24 @@ services:
     networks:
       - mtg-network
 
+  worker-whatsapp:
+    build:
+      context: ./worker_whatsapp
+      dockerfile: Dockerfile
+    container_name: mtg-utils-whatsapp
+    restart: unless-stopped
+    environment:
+      - WHATSAPP_SESSION_PATH=/app/data/wa_session.sqlite3
+      - WHATSAPP_DB_PATH=/app/data/cards.db
+      - WHATSAPP_ALLOWED_CHATS=${WHATSAPP_ALLOWED_CHATS:-}
+      - CHECK_INTERVAL_SECONDS=120
+      - SCRAPE_INTERVAL_SECONDS=300
+    volumes:
+      - ./worker_whatsapp/data:/app/data
+      - ./worker_whatsapp/src:/app/src
+    networks:
+      - mtg-network
+
   tor:
     build:
       context: ./docker/tor
@@ -86,7 +104,7 @@ services:
     container_name: mtg-utils-tor
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "nc -z 127.0.0.1 9050"]
+      test: [ "CMD-SHELL", "nc -z 127.0.0.1 9050" ]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -134,7 +152,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d mtg_utils"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d mtg_utils" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -155,7 +173,7 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 5s
       timeout: 5s
       retries: 10
