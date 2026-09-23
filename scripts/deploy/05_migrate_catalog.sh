@@ -23,18 +23,11 @@ log_info "Preparando exportación compatible con el esquema actual..."
     cat <<'SQL'
 BEGIN;
 TRUNCATE TABLE
-    card_price_history,
-    card_translation_retries,
-    card_printings,
-    card_catalog,
-    card_sets,
-    card_rulings,
-    ruling_card_sync,
-    rule_document_changes,
-    rule_documents,
-    rules_sync_state,
-    scryfall_bulk_cards,
-    scryfall_bulk_state;
+    public.card_price_history,
+    public.card_translation_retries,
+    public.card_printings,
+    public.card_catalog,
+    public.card_sets;
 SQL
     docker exec mtg-utils-db pg_dump -U postgres -d mtg_utils -a --disable-triggers \
         -t card_sets \
@@ -42,16 +35,10 @@ SQL
         -t card_printings \
         -t card_price_history \
         -t card_translation_retries \
-        -t card_rulings \
-        -t ruling_card_sync \
-        -t rule_documents \
-        -t rule_document_changes \
-        -t rules_sync_state \
-        -t scryfall_bulk_cards \
-        -t scryfall_bulk_state \
         | python3 "${SCRIPT_DIR}/normalize_catalog_dump.py"
 
     cat <<SQL
+SET search_path = public;
 UPDATE card_printings
 SET image_uri = REPLACE(image_uri, 'http://localhost:8080/images', 'http://${REMOTE_HOST}:${PROD_NGINX_PORT}/images'),
     image_uri_small = REPLACE(image_uri_small, 'http://localhost:8080/images', 'http://${REMOTE_HOST}:${PROD_NGINX_PORT}/images'),
@@ -77,7 +64,7 @@ run_ssh "docker exec mtg-utils-db psql -U postgres -d mtg_utils -c '
     FROM pg_stat_user_tables 
     WHERE relname IN (
         \$\$card_sets\$\$, \$\$card_catalog\$\$, \$\$card_printings\$\$, \$\$card_rulings\$\$,
-        \$\$scryfall_bulk_cards\$\$, \$\$users\$\$, \$\$decks\$\$, \$\$user_collections\$\$
+        \$\$scryfall_bulk_cards\$\$, \$\$cm_price_history\$\$, \$\$users\$\$, \$\$decks\$\$, \$\$user_collections\$\$
     )
     ORDER BY n_live_tup DESC;
 '"

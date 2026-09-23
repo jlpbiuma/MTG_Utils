@@ -83,8 +83,11 @@ fi
         self.assertTrue(payload.startswith("BEGIN;\nTRUNCATE TABLE"))
         self.assertTrue(payload.endswith("COMMIT;\n"))
         self.assertIn("COPY public.card_printings (id) FROM stdin;\na\n", payload)
+        self.assertIn("SET search_path = public;", payload)
         self.assertIn("UPDATE card_printings", payload)
         self.assertNotIn("CASCADE", payload)
+        self.assertNotIn("scryfall_bulk_cards", payload)
+        self.assertNotIn("cm_price_history", payload)
 
 
 if __name__ == "__main__":
