@@ -10,11 +10,17 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/mtg_utils?schema=public
       - WORKER_URL=http://worker:8001
+      - OCR_API_URL=${OCR_API_URL:-http://host.docker.internal:8020}
+      - OCR_API_TOKEN=${OCR_API_TOKEN:-}
+      - OCR_API_TIMEOUT=${OCR_API_TIMEOUT:-15}
     env_file:
       - ./backend/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
+      - ./worker_whatsapp/data:/app/whatsapp_data:ro
     depends_on:
       db:
         condition: service_healthy
@@ -91,6 +97,11 @@ services:
       - WHATSAPP_ALLOWED_CHATS=${WHATSAPP_ALLOWED_CHATS:-}
       - CHECK_INTERVAL_SECONDS=120
       - SCRAPE_INTERVAL_SECONDS=300
+      - OCR_API_URL=${OCR_API_URL:-http://host.docker.internal:8020}
+      - OCR_API_TOKEN=${OCR_API_TOKEN:-}
+      - OCR_API_TIMEOUT=${OCR_API_TIMEOUT:-10}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./worker_whatsapp/data:/app/data
       - ./worker_whatsapp/src:/app/src

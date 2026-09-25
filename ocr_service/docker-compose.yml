@@ -1,0 +1,19 @@
+services:
+  ocr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ocr-home
+    restart: unless-stopped
+    ports:
+      - "8020:8020"
+    environment:
+      - OCR_API_TOKEN=${OCR_API_TOKEN:-}
+      - TZ=${TZ:-Atlantic/Canary}
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8020/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

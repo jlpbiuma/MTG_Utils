@@ -1,0 +1,37 @@
+{
+  "folders": [
+    { "name": "Root", "path": "." },
+    { "name": "Backend", "path": "backend" },
+    { "name": "Frontend Web", "path": "frontend" },
+    { "name": "Frontend Swift", "path": "frontend_swift" },
+    { "name": "Worker", "path": "worker" },
+    { "name": "Worker WhatsApp", "path": "worker_whatsapp" }
+  ],
+  "settings": {
+    "makefile.configureOnOpen": true,
+    "python.testing.pytestArgs": ["tests"],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.terminal.activateEnvironment": true,
+    "vitest.enable": true,
+    "vitest.rootConfig": "${workspaceFolder:Frontend Web}/vitest.config.mts",
+    "vitest.commandLine": "npm test -- --run",
+    "vitest.workspaceFolder": "${workspaceFolder:Frontend Web}",
+    "testing.followRunningTest": true,
+    "testing.automaticallyOpenTestResults": "openOnTestFailure",
+    "swift.testing.enabled": true,
+    "swift.testArguments": [
+      "--parallel"
+    ],
+    "swift.recordTestDuration": true
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.vscode-pylance",
+      "vitest.explorer",
+      "sswg.swift-lang",
+      "prisma.prisma"
+    ]
+  }
+}

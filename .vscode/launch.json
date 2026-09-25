@@ -5,7 +5,7 @@
       "name": "Next.js: Debug Server-side",
       "type": "node",
       "request": "launch",
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder:Frontend Web}",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 9229,
@@ -21,7 +21,7 @@
       "type": "chrome",
       "request": "launch",
       "url": "http://localhost:3000",
-      "webRoot": "${workspaceFolder}"
+      "webRoot": "${workspaceFolder:Frontend Web}"
     },
     {
       "name": "Next.js: Attach to Node Process",
@@ -29,8 +29,8 @@
       "request": "attach",
       "port": 9229,
       "address": "localhost",
-      "localRoot": "${workspaceFolder}",
-      "remoteRoot": "${workspaceFolder}",
+      "localRoot": "${workspaceFolder:Frontend Web}",
+      "remoteRoot": "${workspaceFolder:Frontend Web}",
       "restart": true
     }
   ],
