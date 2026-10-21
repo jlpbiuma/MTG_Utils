@@ -1,0 +1,111 @@
+{
+  "local_read_only": {
+    "counts": {
+      "catalog": 19032,
+      "printings": 45819,
+      "history": 0,
+      "offers": 0,
+      "offer_cards": 0
+    },
+    "sample_names": 3,
+    "sql_before_ms": 1474.973,
+    "sql_after_without_new_indexes_ms": 452.184,
+    "stored_offers": 0,
+    "pending_offer_schema_migrations": true
+  },
+  "isolated_catalog_copy": {
+    "catalog_rows": 19032,
+    "sql_before_execution_ms": [
+      158.087,
+      129.223,
+      142.384
+    ],
+    "sql_after_execution_ms": [
+      15.785,
+      11.828,
+      16.245
+    ]
+  },
+  "isolated_api_fixture": {
+    "scope": "isolated-public-catalog-copy/synthetic-api-fixture",
+    "offers": 12,
+    "names_per_offer": 3,
+    "catalog_rows": 19032,
+    "before": [
+      {
+        "wall_ms": 1785.82,
+        "queries": {
+          "simulatedcollection.find_many": 1,
+          "query_raw": 24,
+          "deck.find_many": 12,
+          "collectioncard.find_many": 12,
+          "wantcard.find_many": 12,
+          "cardprinting.find_many": 12
+        }
+      },
+      {
+        "wall_ms": 1492.82,
+        "queries": {
+          "simulatedcollection.find_many": 1,
+          "query_raw": 24,
+          "deck.find_many": 12,
+          "collectioncard.find_many": 12,
+          "wantcard.find_many": 12,
+          "cardprinting.find_many": 12
+        }
+      },
+      {
+        "wall_ms": 1532.79,
+        "queries": {
+          "simulatedcollection.find_many": 1,
+          "query_raw": 24,
+          "deck.find_many": 12,
+          "collectioncard.find_many": 12,
+          "wantcard.find_many": 12,
+          "cardprinting.find_many": 12
+        }
+      }
+    ],
+    "after": [
+      {
+        "wall_ms": 118.0,
+        "queries": {
+          "simulatedcollection.find_many": 1,
+          "deck.find_many": 1,
+          "collectioncard.find_many": 1,
+          "wantcard.find_many": 1,
+          "query_raw": 2,
+          "cardprinting.find_many": 1
+        }
+      },
+      {
+        "wall_ms": 336.97,
+        "queries": {
+          "simulatedcollection.find_many": 1,
+          "deck.find_many": 1,
+          "collectioncard.find_many": 1,
+          "wantcard.find_many": 1,
+          "query_raw": 2,
+          "cardprinting.find_many": 1
+        }
+      },
+      {
+        "wall_ms": 23.35,
+        "queries": {
+          "simulatedcollection.find_many": 1,
+          "deck.find_many": 1,
+          "collectioncard.find_many": 1,
+          "wantcard.find_many": 1,
+          "query_raw": 2,
+          "cardprinting.find_many": 1
+        }
+      }
+    ],
+    "responses_identical": true
+  },
+  "tmnt_catalog_lookup": {
+    "scope": "local-read-only",
+    "names": 93,
+    "unresolved_names": []
+  }
+}

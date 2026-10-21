@@ -1,0 +1,867 @@
+numero,carta,edicion_base,en_propiedad,copias
+1,Invisible Woman,True,True,1
+2,Mister Fantastic,True,True,1
+3,Human Torch,True,True,1
+4,The Thing,True,True,1
+5,"Captain America, Team Leader",True,True,1
+6,"Doctor Doom, King of Latveria",True,True,1
+7,"T'Challa, the Black Panther",True,False,0
+8,"Galactus, Devourer of Worlds",True,True,1
+9,Molecule Man,True,True,1
+10,"Silver Surfer, Galactus's Herald",True,True,1
+11,Avenge,True,True,1
+12,Dora Milaje Elite,True,False,0
+13,"Everett K. Ross, Hapless Attaché",True,False,0
+14,Falcon and Redwing,True,True,1
+15,Hatut Zeraze Strike Force,True,False,0
+16,"Hercules, Olympian Hero",True,True,1
+17,Heroic Return,True,True,1
+18,Heroic Sacrifice,True,True,1
+19,Invisible Force Field,True,True,1
+20,King Solomon's Frogs,True,False,0
+21,Methods of the Mighty,True,True,1
+22,Midnight Angel Armor,True,False,0
+23,Queen Mother Ramonda,True,False,0
+24,Royal Talon Fighter Jet,True,False,0
+25,The Spear of Bashenga,True,False,0
+26,Ultimate Nullification,True,True,1
+27,"Winter Soldier, Reborn Avenger",True,True,1
+28,Council of Reeds,True,True,1
+29,Extract Power,True,True,1
+30,Fantastic Elasticity,True,True,1
+31,Glorious Purpose,True,True,1
+32,"Helmut Zemo, Mastermind",True,True,1
+33,"Iron Man, Armored Avenger",True,True,1
+34,"Jarvis, Earth's Mightiest Butler",True,True,1
+35,Kang Dynasty,True,True,1
+36,"Lockjaw, Slobbering Teleporter",True,True,1
+37,Professor Hulk,True,True,1
+38,"Valeria Richards, Precocious",True,True,1
+39,"The Wasp, Winsome Avenger",True,True,1
+40,West Coast Expansion,True,True,1
+41,Age of Ultron,True,True,1
+42,"Damocles Base, Sword of Kang",True,True,1
+43,Endless Ranks of HYDRA,True,True,1
+44,The Frightful Four,True,True,1
+45,"Iron Monger, Sadistic Tycoon",True,True,1
+46,"Klaw, Master of Sound",True,True,1
+47,"Abomination, World Ravager",True,True,1
+48,"Alicia Masters, Skilled Sculptor",True,True,1
+49,Batroc the Leaper,True,True,1
+50,"Firebird, Blazing Ranger",True,True,1
+51,Flame On!,True,True,1
+52,"Franklin Richards, Ascendant",True,True,1
+53,"Killmonger, Ruthless Usurper",True,True,1
+54,"Lady Loki, Agent of Chaos",True,True,1
+55,Living Laser,True,True,1
+56,Loki's Scepter,True,True,1
+57,Nova Flame,True,True,1
+58,"Photon, Mighty Marvel",True,True,1
+59,"Puppet Master, String Puller",True,True,1
+60,"She-Hulk, Wallbreaker",True,True,1
+61,"Stilt-Man, Towering Terror",True,True,1
+62,"Titania, Proud Pummeler",True,True,1
+63,"War Machine, Avenging Arsenal",True,True,1
+64,Ancestral Communion,True,False,0
+65,Fight for the Throne,True,False,0
+66,It's Clobberin' Time!,True,True,1
+67,"M'Baku, Jabari Chieftain",True,False,0
+68,"Medusa, Inhuman Queen",True,True,1
+69,"Nakia, Wakandan Operative",True,False,0
+70,"W'Kabi, Shield of the Nation",True,False,0
+71,Wakanda Forever!,True,False,0
+72,"Zuri, Warrior of Wakanda",True,False,0
+73,"Ant-Man, Elusive Avenger",True,True,1
+74,Archnemesis,True,True,1
+75,"Bast, Panther Goddess",True,False,0
+76,"Black Bolt, Inhuman King",True,True,1
+77,"Black Widow, Agile Avenger",True,True,1
+78,"Captain Marvel, Apex Avenger",True,True,1
+79,Cosmic Crucible,True,True,1
+80,"Crystal, Inhuman Princess",True,True,1
+81,Director Nick Fury,True,True,1
+82,"Dragon Man, Reformed Robot",True,True,1
+83,First Family,True,True,1
+84,"Hawkeye, Avenging Archer",True,True,1
+85,Kang Prime,True,True,1
+86,"Loki, the Deceiver",True,True,1
+87,Love on the Battlefield,True,True,1
+88,"Namor, Atlantean King",True,True,1
+89,"Okoye, Mighty and Adored",True,False,0
+90,Power Pack,True,True,1
+91,"Quicksilver, Speedster",True,True,1
+92,"Red Ghost, Intangible Genius",True,True,1
+93,"Scarlet Witch, Chaotic Avenger",True,True,1
+94,Shang-Chi and the Ten Rings,True,True,1
+95,"Shuri, the Black Panther",True,False,0
+96,The Squadron Sinister,True,True,1
+97,"Storm, Queen of Wakanda",True,False,0
+98,"T'Chaka, Venerable King",True,False,0
+99,"Typhoid Mary, Fractured",True,True,1
+100,"Ultron, Unlimited",True,True,1
+101,"Willie Lumpkin, Postman",True,True,1
+102,Avengers Quinjet,True,True,1
+103,Doom's Time Platform,True,True,1
+104,The Fantasticar,True,True,1
+105,Heart-Shaped Herb,True,False,0
+106,"H.E.R.B.I.E., Lovable Robot",True,True,1
+107,Hulkbuster Armor,True,True,1
+108,"Jocasta, Automaton Avenger",True,True,1
+109,Kimoyo Beads,True,False,0
+110,N'Yami-Class Mother Ship,True,False,0
+111,Negative Zone Portal,True,True,1
+112,Panther Habit,True,False,0
+113,Panther Robot,True,False,0
+114,Shuri's Fabricator,True,False,0
+115,"Tri-Sentinel, Act of Vengeance",True,True,1
+116,Unstable Molecule Suit,True,True,1
+117,Vibranium Mining Mech,True,False,0
+118,Vibranium Strike Gauntlets,True,False,0
+119,"Vision, Synthezoid Avenger",True,True,1
+120,The Great Mound,True,False,0
+121,Austere Command,True,True,1
+122,Bastion Protector,True,True,1
+123,Bovine Intervention,True,True,1
+124,Cleansing Nova,True,True,1
+125,Clever Concealment,True,True,1
+126,Collective Effort,True,True,1
+127,Cut a Deal,True,True,1
+128,Destroy Evil,True,True,1
+129,Dismantling Wave,True,True,1
+130,Dispatch,True,False,0
+131,Divine Visitation,True,False,0
+132,Folk Hero,True,True,1
+133,Generous Gift,True,False,0
+134,Gift of Immortality,True,True,1
+135,Ingenious Smith,True,False,0
+136,Loyal Retainers,True,False,0
+137,Make Your Move,True,True,1
+138,Martial Coup // Martial Coup,True,False,0
+139,Monologue Tax,True,True,1
+140,Palace Jailer,True,False,0
+141,Path to Exile,True,True,1
+142,Promise of Loyalty,True,True,1
+143,Swords to Plowshares,True,True,1
+144,Tragic Arrogance,True,True,1
+145,Valorous Stance,True,False,0
+146,Vanquish the Horde,True,False,0
+147,Arcane Denial,True,True,1
+148,"Chameleon, Master of Disguise",True,True,1
+149,Deep Analysis,True,True,1
+150,Kindred Discovery,True,True,1
+151,Propaganda,True,True,1
+152,Quantum Misalignment,True,True,1
+153,Reconnaissance Mission,True,True,1
+154,Recurring Insight,True,True,1
+155,Black Market Connections,True,True,1
+156,Kindred Dominance,True,True,1
+157,Lethal Scheme,True,True,1
+158,Night's Whisper,True,True,1
+159,Syphon Mind,True,True,1
+160,"Tombstone, Career Criminal",True,True,1
+161,Toxic Deluge,True,True,1
+162,Withering Torment,True,True,1
+163,Blasphemous Act,True,True,1
+164,Chaos Warp,True,True,1
+165,Into the Time Vortex,True,True,1
+166,Seize the Day,True,True,1
+167,Superior Foes of Spider-Man,True,True,1
+168,Vandalblast,True,True,1
+169,Beast Within,True,False,0
+170,Birds of Paradise,True,False,0
+171,Conduit of Worlds,True,False,0
+172,Cultivate,True,True,1
+173,Farseek,True,True,1
+174,Greater Good,True,False,0
+175,Harmonize,True,False,0
+176,Loyal Guardian,True,False,0
+177,Nature's Lore,True,False,0
+178,Overwhelming Stampede,True,False,0
+179,Path of Discovery,True,True,1
+180,Terramorph,True,True,1
+181,Three Visits,True,True,1
+182,Bedevil,True,True,1
+183,Expressive Iteration,True,True,1
+184,Galvanic Iteration,True,True,1
+185,Hull Breach,True,True,1
+186,"Prowler, Clawed Thief",True,True,1
+187,Rip Apart,True,True,1
+188,Taunt from the Rampart,True,True,1
+189,Terminate,True,True,1
+190,Whirlwind of Thought,True,True,1
+191,Arcane Signet,True,True,1
+192,Arcane Signet,True,True,1
+193,Arcane Signet,True,True,1
+194,Arcane Signet,True,False,0
+195,Chromatic Lantern,True,True,1
+196,Coveted Jewel,True,False,0
+197,Currency Converter,True,True,1
+198,Door of Destinies,True,True,1
+199,Gilded Lotus,True,False,0
+200,Helm of the Host,True,False,0
+201,Hero's Blade,True,True,1
+202,Lightning Greaves,True,True,1
+203,Metallic Mimic,True,True,1
+204,Metalwork Colossus,True,False,0
+205,Meteor Golem,True,False,0
+206,Mirage Mirror,True,True,1
+207,Patchwork Banner,True,True,1
+208,Progenitor's Icon,True,True,1
+209,Relic of Legends,True,True,1
+210,Skullclamp,True,True,1
+211,Sol Ring,True,True,1
+212,Sol Ring,True,True,1
+213,Sol Ring,True,True,1
+214,Sol Ring,True,False,0
+215,Solemn Simulacrum,True,False,0
+216,Swiftfoot Boots,True,True,1
+217,Talisman of Conviction,True,True,1
+218,Talisman of Creativity,True,True,1
+219,Talisman of Dominance,True,True,1
+220,Talisman of Indulgence,True,True,1
+221,Talisman of Progress,True,True,1
+222,Thought Vessel,True,True,1
+223,Tome of Legends,True,True,1
+224,Trading Post,True,False,0
+225,Whispersilk Cloak,True,False,0
+226,Bountiful Promenade,True,False,0
+227,Canopy Vista,True,True,1
+228,Canyon Slough,True,True,1
+229,Choked Estuary,True,True,1
+230,Cinder Glade,True,True,1
+231,Clifftop Retreat,True,True,2
+232,Coastal Peak,True,True,2
+233,Command Tower,True,True,1
+234,Command Tower,True,True,1
+235,Command Tower,True,True,1
+236,Command Tower,True,False,0
+237,Crumbling Necropolis,True,True,1
+238,Dragonskull Summit,True,True,1
+239,Drowned Catacomb,True,True,1
+240,Evolving Wilds,True,True,1
+241,Exotic Orchard,True,True,3
+242,Fabled Passage,True,True,1
+243,Fetid Pools,True,True,1
+244,Foreboding Ruins,True,True,1
+245,Fortified Village,True,False,0
+246,Frostboil Snarl,True,True,2
+247,Furycalm Snarl,True,True,1
+248,Glacial Fortress,True,True,2
+249,Glittering Massif,True,True,1
+250,Hinterland Harbor,True,True,1
+251,Irrigated Farmland,True,True,1
+252,Luxury Suite,True,True,1
+253,Mystic Monastery,True,True,1
+254,Path of Ancestry,True,True,3
+255,Plaza of Heroes,True,True,1
+256,Port Town,True,True,1
+257,Prairie Stream,True,True,2
+258,Radiant Summit,True,True,2
+259,Razorverge Thicket,True,False,0
+260,Rejuvenating Springs,True,True,1
+261,Rootbound Crag,True,True,1
+262,Scattered Groves,True,False,0
+263,Scavenger Grounds,True,True,2
+264,Scorched Geyser,True,True,3
+265,Secluded Courtyard,True,True,2
+266,Smoldering Marsh,True,True,1
+267,Sodden Verdure,True,True,1
+268,Spectator Seating,True,True,1
+269,Sulfur Falls,True,True,3
+270,Sungrass Prairie,True,False,0
+271,Sunken Hollow,True,True,1
+272,Sunpetal Grove,True,True,1
+273,Terramorphic Expanse,True,True,3
+274,Throne of the High City,True,False,0
+275,Unclaimed Territory,True,True,2
+276,Scourglass,True,False,0
+277,Mind's Dilation,True,True,1
+278,Raise the Palisade,True,True,10
+279,Spark Double,True,True,1
+280,Titan of Littjara,True,True,1
+281,Annie Joins Up,True,True,1
+282,Fleecemane Lion,True,False,0
+283,Genesis Ultimatum,True,True,1
+284,Containment Construct,True,True,1
+285,Fellwar Stone,True,True,4
+286,Hammer of Nazahn,True,False,0
+287,Herald's Horn,True,True,2
+288,Mind's Eye,True,False,0
+289,Sword of the Animist,True,False,0
+290,Thran Dynamo,True,False,0
+291,"Galactus, Devourer of Worlds",False,False,0
+292,Molecule Man,False,False,0
+293,"Silver Surfer, Galactus's Herald",False,False,0
+294,Austere Command,False,False,0
+295,Avenge,False,False,0
+296,Bastion Protector,False,False,0
+297,Cleansing Nova,False,False,0
+298,Clever Concealment,False,False,0
+299,Collective Effort,False,False,0
+300,Dismantling Wave,False,False,0
+301,Divine Visitation,False,False,0
+302,Dora Milaje Elite,False,False,0
+303,"Everett K. Ross, Hapless Attaché",False,False,0
+304,Falcon and Redwing,False,False,0
+305,Folk Hero,False,False,0
+306,Gift of Immortality,False,False,0
+307,Hatut Zeraze Strike Force,False,False,0
+308,"Hercules, Olympian Hero",False,False,0
+309,Heroic Return,False,False,0
+310,Heroic Sacrifice,False,False,0
+311,Invisible Force Field,False,False,0
+312,King Solomon's Frogs,False,False,0
+313,Loyal Retainers,False,False,0
+314,Martial Coup // Martial Coup,False,False,0
+315,Methods of the Mighty,False,False,0
+316,Midnight Angel Armor,False,False,0
+317,Monologue Tax,False,False,0
+318,Scourglass,False,False,0
+319,Promise of Loyalty,False,False,0
+320,Queen Mother Ramonda,False,False,0
+321,Royal Talon Fighter Jet,False,False,0
+322,The Spear of Bashenga,False,False,0
+323,Tragic Arrogance,False,False,0
+324,Ultimate Nullification,False,False,0
+325,Vanquish the Horde,False,False,0
+326,"Winter Soldier, Reborn Avenger",False,False,0
+327,Council of Reeds,False,False,0
+328,Extract Power,False,False,0
+329,Fantastic Elasticity,False,False,0
+330,Glorious Purpose,False,False,0
+331,"Helmut Zemo, Mastermind",False,False,0
+332,"Iron Man, Armored Avenger",False,False,0
+333,"Jarvis, Earth's Mightiest Butler",False,False,0
+334,Kindred Discovery,False,False,0
+335,Titan of Littjara,False,False,0
+336,"Lockjaw, Slobbering Teleporter",False,False,0
+337,Spark Double,False,False,0
+338,Professor Hulk,False,False,0
+339,Quantum Misalignment,False,False,0
+340,Raise the Palisade,False,False,0
+341,Recurring Insight,False,False,0
+342,"Valeria Richards, Precocious",False,False,0
+343,"The Wasp, Winsome Avenger",False,False,0
+344,Mind's Dilation,False,False,0
+345,West Coast Expansion,False,False,0
+346,Black Market Connections,False,False,0
+347,"Damocles Base, Sword of Kang",False,False,0
+348,Endless Ranks of HYDRA,False,False,0
+349,The Frightful Four,False,False,0
+350,"Iron Monger, Sadistic Tycoon",False,False,0
+351,Kindred Dominance,False,False,0
+352,"Klaw, Master of Sound",False,False,0
+353,Lethal Scheme,False,False,0
+354,Toxic Deluge,False,False,0
+355,"Abomination, World Ravager",False,False,0
+356,"Alicia Masters, Skilled Sculptor",False,False,0
+357,Batroc the Leaper,False,False,0
+358,Blasphemous Act,False,False,0
+359,Chaos Warp,False,False,0
+360,"Firebird, Blazing Ranger",False,False,0
+361,Flame On!,False,False,0
+362,"Franklin Richards, Ascendant",False,False,0
+363,Into the Time Vortex,False,False,0
+364,"Killmonger, Ruthless Usurper",False,False,0
+365,"Lady Loki, Agent of Chaos",False,False,0
+366,Living Laser,False,False,0
+367,Loki's Scepter,False,False,0
+368,Nova Flame,False,False,0
+369,"Photon, Mighty Marvel",False,False,0
+370,"Puppet Master, String Puller",False,False,0
+371,Seize the Day,False,False,0
+372,"She-Hulk, Wallbreaker",False,False,0
+373,"Stilt-Man, Towering Terror",False,False,0
+374,"Titania, Proud Pummeler",False,False,0
+375,"War Machine, Avenging Arsenal",False,False,0
+376,Ancestral Communion,False,False,0
+377,Birds of Paradise,False,False,0
+378,Conduit of Worlds,False,False,0
+379,Fight for the Throne,False,False,0
+380,Greater Good,False,False,0
+381,It's Clobberin' Time!,False,False,0
+382,"M'Baku, Jabari Chieftain",False,False,0
+383,"Medusa, Inhuman Queen",False,False,0
+384,"Nakia, Wakandan Operative",False,False,0
+385,Overwhelming Stampede,False,False,0
+386,Path of Discovery,False,False,0
+387,"W'Kabi, Shield of the Nation",False,False,0
+388,Wakanda Forever!,False,False,0
+389,"Zuri, Warrior of Wakanda",False,False,0
+390,"Ant-Man, Elusive Avenger",False,False,0
+391,Archnemesis,False,False,0
+392,"Bast, Panther Goddess",False,False,0
+393,Bedevil,False,False,0
+394,"Black Bolt, Inhuman King",False,False,0
+395,"Black Widow, Agile Avenger",False,False,0
+396,"Captain Marvel, Apex Avenger",False,False,0
+397,Cosmic Crucible,False,False,0
+398,"Crystal, Inhuman Princess",False,False,0
+399,Director Nick Fury,False,False,0
+400,"Dragon Man, Reformed Robot",False,False,0
+401,First Family,False,False,0
+402,Genesis Ultimatum,False,False,0
+403,Annie Joins Up,False,False,0
+404,Galvanic Iteration,False,False,0
+405,"Hawkeye, Avenging Archer",False,False,0
+406,Kang Prime,False,False,0
+407,"Loki, the Deceiver",False,False,0
+408,Love on the Battlefield,False,False,0
+409,"Namor, Atlantean King",False,False,0
+410,"Okoye, Mighty and Adored",False,False,0
+411,Power Pack,False,False,0
+412,"Quicksilver, Speedster",False,False,0
+413,"Red Ghost, Intangible Genius",False,False,0
+414,"Scarlet Witch, Chaotic Avenger",False,False,0
+415,Shang-Chi and the Ten Rings,False,False,0
+416,"Shuri, the Black Panther",False,False,0
+417,The Squadron Sinister,False,False,0
+418,"Storm, Queen of Wakanda",False,False,0
+419,"T'Chaka, Venerable King",False,False,0
+420,Taunt from the Rampart,False,False,0
+421,"Typhoid Mary, Fractured",False,False,0
+422,"Ultron, Unlimited",False,False,0
+423,Fleecemane Lion,False,False,0
+424,Whirlwind of Thought,False,False,0
+425,"Willie Lumpkin, Postman",False,False,0
+426,Avengers Quinjet,False,False,0
+427,Hammer of Nazahn,False,False,0
+428,Chromatic Lantern,False,False,0
+429,Coveted Jewel,False,False,0
+430,Currency Converter,False,False,0
+431,Doom's Time Platform,False,False,0
+432,Door of Destinies,False,False,0
+433,The Fantasticar,False,False,0
+434,Gilded Lotus,False,False,0
+435,Heart-Shaped Herb,False,False,0
+436,"H.E.R.B.I.E., Lovable Robot",False,False,0
+437,Helm of the Host,False,False,0
+438,Hulkbuster Armor,False,False,0
+439,"Jocasta, Automaton Avenger",False,False,0
+440,Kimoyo Beads,False,False,0
+441,Metallic Mimic,False,False,0
+442,Metalwork Colossus,False,False,0
+443,Mirage Mirror,False,False,0
+444,N'Yami-Class Mother Ship,False,False,0
+445,Negative Zone Portal,False,False,0
+446,Panther Habit,False,False,0
+447,Mind's Eye,False,False,0
+448,Panther Robot,False,False,0
+449,Progenitor's Icon,False,False,0
+450,Shuri's Fabricator,False,False,0
+451,Skullclamp,False,False,0
+452,Sword of the Animist,False,False,0
+453,Solemn Simulacrum,False,False,0
+454,Tome of Legends,False,False,0
+455,Trading Post,False,False,0
+456,"Tri-Sentinel, Act of Vengeance",False,False,0
+457,Unstable Molecule Suit,False,False,0
+458,Vibranium Mining Mech,False,False,0
+459,Vibranium Strike Gauntlets,False,False,0
+460,"Vision, Synthezoid Avenger",False,False,0
+461,Bountiful Promenade,False,False,0
+462,Canopy Vista,False,False,0
+463,Canyon Slough,False,False,0
+464,Choked Estuary,False,False,0
+465,Cinder Glade,False,False,0
+466,Clifftop Retreat,False,False,0
+467,Coastal Peak,False,False,0
+468,Dragonskull Summit,False,False,0
+469,Drowned Catacomb,False,False,0
+470,Exotic Orchard,False,False,0
+471,Fabled Passage,False,False,0
+472,Fetid Pools,False,False,0
+473,Foreboding Ruins,False,False,0
+474,Fortified Village,False,False,0
+475,Frostboil Snarl,False,False,0
+476,Furycalm Snarl,False,False,0
+477,Glacial Fortress,False,False,0
+478,Glittering Massif,False,False,0
+479,The Great Mound,False,False,0
+480,Hinterland Harbor,False,False,0
+481,Irrigated Farmland,False,False,0
+482,Luxury Suite,False,False,0
+483,Plaza of Heroes,False,False,0
+484,Port Town,False,False,0
+485,Prairie Stream,False,False,0
+486,Radiant Summit,False,False,0
+487,Razorverge Thicket,False,False,0
+488,Rejuvenating Springs,False,False,0
+489,Rootbound Crag,False,False,0
+490,Scattered Groves,False,False,0
+491,Scavenger Grounds,False,False,0
+492,Scorched Geyser,False,False,0
+493,Smoldering Marsh,False,False,0
+494,Sodden Verdure,False,False,0
+495,Spectator Seating,False,False,0
+496,Sulfur Falls,False,False,0
+497,Sungrass Prairie,False,False,0
+498,Sunken Hollow,False,False,0
+499,Sunpetal Grove,False,False,0
+500,Throne of the High City,False,False,0
+501,"Iron Man, Futurist Paragon // Iron Man, Futurist Paragon",False,False,0
+502,"Hulk, Always Angry // Hulk, Always Angry",False,False,0
+503,"Thor, Guardian of Midgard // Thor, Guardian of Midgard",False,False,0
+504,"Black Widow, Intel Expert // Black Widow, Intel Expert",False,False,0
+505,"Captain America, Unbowed // Captain America, Unbowed",False,False,0
+506,"Hawkeye, Trick Shot // Hawkeye, Trick Shot",False,False,0
+507,"Ultron, Machine Overlord // Ultron, Machine Overlord",False,False,0
+508,"Thanos, Death's Consort // Thanos, Death's Consort",False,False,0
+509,"M.O.D.O.K., Evil Intellect // M.O.D.O.K., Evil Intellect",False,False,0
+510,Absorbing Man and Titania // Absorbing Man and Titania,False,False,0
+511,"Abomination, Irradiated Brute // Abomination, Irradiated Brute",False,False,0
+512,"Loki, God of Lies // Loki, God of Lies",False,False,0
+517,Fall to Earth,False,False,0
+518,"Hawkeye, Clint Barton",False,False,0
+520,Iconic Shield,False,False,0
+522,"Mockingbird, Bobbi Morse",False,False,0
+523,"Peggy Carter, Secret Agent",False,False,0
+525,Valkyrior Skyrider,False,False,0
+528,Wondrous Revival,False,False,0
+529,A.I.M. Bot,False,False,0
+530,"Blue Marvel, Adam Brashear",False,False,0
+531,"Graviton, Fundamental Force",False,False,0
+532,Repulsor Bots,False,False,0
+533,Stark's Ingenuity,False,False,0
+534,"Boomerang, Blade Flinger",False,False,0
+535,Doom's Servo-Guards,False,False,0
+536,Glamorous Grapplers,False,False,0
+537,Infernal Rebirth,False,False,0
+538,"Madame Hydra, Reanimated",False,False,0
+539,"Minotaur, Roxxon CEO",False,False,0
+540,"Ultimo, Civilization's End",False,False,0
+543,Experimental Armor,False,False,0
+544,Furious Strength,False,False,0
+545,"Happy Hogan, Dauntless Driver",False,False,0
+547,The Immortal Weapons,False,False,0
+549,Marvelous Melee,False,False,0
+551,"Quicksilver, Pietro Maximoff",False,False,0
+554,"She-Hulk, Jennifer Walters",False,False,0
+555,Smashing Spree,False,False,0
+557,"Wiccan, Young Avenger",False,False,0
+558,Colossal Collision,False,False,0
+559,The Fabulous Frog-Man,False,False,0
+560,Feral Ferocity,False,False,0
+561,Flora Colossus,False,False,0
+562,Gamma Grotesque,False,False,0
+563,"Moon-Boy, Dino Rider",False,False,0
+564,Thing Swing,False,False,0
+565,Warriors of Wakanda,False,False,0
+566,"Atlas, Sizable Stooge",False,False,0
+567,"Brawn, Amadeus Cho",False,False,0
+568,"Gert and Old Lace, Runaways",False,False,0
+569,"Iron Lad, Young Avenger",False,False,0
+570,"Patriot, Young Avenger",False,False,0
+571,"Stature, Young Avenger",False,False,0
+572,"War Machine, James Rhodes",False,False,0
+573,Team Transmitter,False,False,0
+574,"Victor Mancha, Runaway",False,False,0
+575,Pacifism,False,False,0
+576,Doom Blade,False,False,0
+577,"Tombstone, Career Criminal",False,False,0
+578,Thriving Bluff,False,False,0
+579,Thriving Grove,False,True,1
+580,Thriving Heath,False,False,0
+581,Thriving Isle,False,False,0
+582,Thriving Moor,False,True,1
+583,Amazing Spider-Girl,False,False,0
+584,"Black Panther, Most Dangerous",False,False,0
+585,Blur of Heroism,False,False,0
+586,"Bucky Barnes, Eager Ally",False,False,0
+587,"Captain America, Liberator",False,False,0
+588,"Captain America, Skybound",False,False,0
+589,"Captain Marvel, Shooting Star",False,False,0
+590,Doctor Spectrum,False,False,0
+591,"Doctor Strange, Surgeon",False,False,0
+592,"Donald Blake, Guise of Thor",False,False,0
+593,"Falcon, Joaquin Torres",False,False,0
+594,"Foggy Nelson, On Retainer",False,False,0
+595,General Thunderbolt Ross,False,False,0
+596,"Hawkeye, Bowslinger",False,False,0
+597,Heroic Teamwork,False,False,0
+598,The Howling Commandos,False,False,0
+599,"Hyperion, Supreme Hero",False,False,0
+600,Hyperion's Atomic Vision,False,False,0
+601,Infinity Formula,False,False,0
+602,"Matt Murdock, Justice Seeker",False,False,0
+603,"Nick Fury, Spymaster",False,False,0
+604,"Nighthawk, Dark Defender",False,False,0
+605,Origin of Captain America,False,False,0
+606,"Photon, Lady of Light",False,False,0
+607,Quantum Entanglement,False,False,0
+608,Secure Detention,False,False,0
+609,Strategic Intervention,False,False,0
+610,Stunning Shot,False,False,0
+611,Ultimate Alliance,False,False,0
+612,Vault Guardsman,False,False,0
+613,Wakandan Shield Guard,False,False,0
+614,Wall Off,False,False,0
+615,"Zarda, the Power Princess",False,False,0
+616,Atlantean Skirmisher,False,False,0
+617,Collector's Case,False,False,0
+618,Daughter of the Deep,False,False,0
+619,Dismissive Denial,False,False,0
+620,Fantastic Bounce,False,False,0
+621,Flying Drone,False,False,0
+622,"Happy Hogan, Bodyguard",False,False,0
+623,"Immortus, Master of Eternity",False,False,0
+624,Imperial Cosmographer,False,False,0
+625,Impossible Man,False,False,0
+626,"Iron Man, Bleeding Edge",False,False,0
+627,Living Lies of Loki,False,False,0
+628,"Loki, Lord of Misrule",False,False,0
+629,Multiversal Recruitment,False,False,0
+630,Mysterio's Mirage,False,False,0
+631,"Namor, Scourge of the Seas",False,False,0
+632,"Namora, the Sea Queen",False,False,0
+633,Origin of Iron Man,False,False,0
+634,Pharaoh Rama-Tut,False,False,0
+635,Quantum Reduction,False,False,0
+636,"Reed Richards, Smartest Man",False,True,1
+637,Shi'ar Soldier,False,False,0
+638,Shipwreck Patrol,False,False,0
+639,"Silver Surfer, Cosmic Voyager",False,False,0
+640,Spaceshift,False,False,0
+641,Timeline Inquiry,False,False,0
+642,"Victor Timely, Wily Tycoon",False,False,0
+643,Virtual Assistant,False,False,0
+644,"Vision, Spectral Synthezoid",False,False,0
+645,"Vulture, Feathered Fiend",False,False,0
+646,"Wasp, Shrinking Savior",False,False,0
+647,Armed Assailant,False,False,0
+648,"Black Widow, Deadly Hunter // Black Widow, Deadly Hunter",False,False,0
+649,"Bob, Reluctant HYDRA Agent",False,False,0
+650,"Citizen V, Helmut Zemo",False,False,0
+651,Count Nefaria,False,False,0
+652,Criminal Enterprise,False,False,0
+653,"Crimson Cowl, Master of Evil",False,False,0
+654,"Doctor Doom, Unrivaled",False,False,0
+655,Doombot Harbinger,False,False,0
+656,"Fixer, Techno Terror",False,False,0
+657,"Green Goblin, Back for More",False,False,0
+658,Grim Reaper's Scythe,False,False,0
+659,"Hammerhead, Maggia Boss",False,False,0
+660,HYDRA Disintegrator,False,False,0
+661,"Kingpin, Wilson Fisk",False,False,0
+662,"MACH-1, Swooping Scoundrel",False,False,0
+663,Minion Missile,False,False,0
+664,Origin of Black Widow,False,False,0
+665,Radioactive Man,False,False,0
+666,Sadistic Slash,False,False,0
+667,Titanium Man,False,False,0
+668,Ultron the Annihilator,False,False,0
+669,Ultron's Auxiliary,False,False,0
+670,Undead Hand Ninja,False,False,0
+671,Valentina Allegra de Fontaine,False,False,0
+672,Villainous Syndication,False,False,0
+673,"Viper, Cruel Conspirator",False,False,0
+674,Void Helix,False,False,0
+675,Voltaic Whip,False,False,0
+676,"White Widow, Yelena Belova",False,False,0
+677,"Alex Wilder, Runaway",False,False,0
+678,Asgardian Inspiration,False,False,0
+679,Big Wheel,False,False,0
+680,Bionic Blow,False,False,0
+681,Captain America's Motorcycle,False,False,0
+682,"Chase Stein, Runaway // Chase Stein, Runaway",False,False,0
+683,Contract Hero,False,False,0
+684,Crossover Collaboration,False,False,0
+685,"Daredevil, Fearless Fighter",False,False,0
+686,Daredevil's Billy Club,False,False,0
+687,"Elektra, Femme Fatale",False,False,0
+688,Heroes for Hire,False,False,0
+689,"Hulkling, Young Avenger",False,False,0
+690,Inspired Fire,False,False,0
+691,Intrepid Ace,False,False,0
+692,"Iron Fist, Hero for Hire",False,False,0
+693,"Jack of Hearts, Volatile Hero",False,False,0
+694,"Karolina Dean, Runaway",False,False,0
+695,"Lady Spider, Maybelle Reilly",False,False,0
+696,"Luke Cage, Hero for Hire",False,False,0
+697,Mjölnir's Might,False,False,0
+698,"Molly Hayes, Runaway",False,False,0
+699,Molten Lavamancer,False,False,0
+700,"Nico Minoru, Runaway",False,False,0
+701,Origin of Thor,False,False,0
+702,Pick Up the Pace,False,False,0
+703,Quinjet Technician,False,False,0
+704,Sky Cycle,False,False,0
+705,"Spider-Man, New Champion",False,False,0
+706,"Stick, Fearless Mentor",False,False,0
+707,The Vision and Scarlet Witch,False,False,0
+708,Wanda's Vision,False,False,0
+709,"Whirlwind, Killer Cyclone",False,False,0
+710,"The Whizzer, Classic Speedster",False,False,0
+711,Accelerated Evolution,False,False,0
+712,Advancing the Spirit,False,False,0
+713,Beast Mode,False,False,0
+714,Big Bertha,False,False,0
+715,Black Tom Cassidy,False,False,0
+716,"Bushmaster, Coiled Henchman",False,False,0
+717,"Colossus, Steel Stalwart",False,False,0
+718,"Darwin, Adaptive Mutant",False,False,0
+719,Devil Dinosaur,False,False,0
+720,Doorman,False,False,0
+721,Flatman,False,False,0
+722,"Giant-Man, Gargantuan Genius",False,False,0
+723,Hit-Monkey,False,False,0
+724,"Hulk, Strongest There Is",False,False,0
+725,Hulk's Thunderclap,False,False,0
+726,Lucky the Pizza Dog // Lucky the Pizza Dog,False,False,0
+727,Mister Immortal,False,False,0
+728,Origin of the Hulk,False,False,0
+729,Return of the Mole Man,False,False,0
+730,"Rhino, Terrible Trampler",False,False,0
+731,"Sauron, Dino Devotee",False,False,0
+732,"Shang-Chi, Martial Mentor",False,False,0
+733,"Storm, Shaker of Skies",False,False,0
+734,"Tippy-Toe, Terrific Partner",False,False,0
+735,Voracious Brood,False,False,0
+736,"White Tiger, Amulet Keeper",False,False,0
+737,"Wolverine, Claws Out",False,False,0
+738,"X-23, Deadly Weapon",False,False,0
+739,"Ant-Man, Reformed Rogue",False,False,0
+740,Astonishing Spider-Man,False,False,0
+741,The Fantastic Four,False,False,0
+742,Iceman and Firestar // Iceman and Firestar,False,False,0
+743,"Marvel Boy, Noh-Varr",False,False,0
+744,"Ms. Marvel, Elastic Ally",False,False,0
+745,"She-Hulk, Attorney-at-Law",False,False,0
+746,"Shuri, Vibranium Technologist",False,False,0
+747,"Tiger Shark, Abyssal Hunter",False,False,0
+748,Wakandan Tusker,False,False,0
+749,Daily Bugle Newspaper,False,False,0
+750,Iron Suitcase,False,False,0
+751,"Machine Man, Model X-51",False,False,0
+752,Swordsman's Steel,False,False,0
+753,The Thanos-Copter,False,False,0
+754,Fogwell's Gym,False,False,0
+755,"Rescue, Pepper Potts",False,True,1
+756,"Thor, Asgard's Avenger",False,True,1
+757,Doctor Jane Foster,False,False,0
+758,Virtuous Variant,False,False,0
+759,Ant-Man's Air Force,False,False,0
+760,Mist-Cloaked Herald,False,False,0
+761,TVA Bureaucrat,False,False,0
+762,"Songbird, Sonic Screamer",False,False,0
+763,Extremis Elite,False,False,0
+764,"Living Lightning, Charged Up",False,False,0
+765,Sif's Spearmaster,False,False,0
+766,"Goliath, Mass Manipulator",False,False,0
+767,"Wolfsbane, Highland Hero",False,False,0
+768,Aunt May,False,False,0
+769,City Pigeon,False,False,0
+770,Costume Closet,False,False,0
+771,Daily Bugle Reporters,False,False,0
+772,"Flash Thompson, Spider-Fan",False,False,0
+773,"MJ, Rising Star",False,False,0
+774,Selfless Police Captain,False,False,0
+775,Spectacular Tactics,False,False,0
+776,"Spider-Man, Web-Slinger",False,False,0
+777,Spider-UK,False,False,0
+778,"Starling, Aerial Ally",False,False,0
+779,Sudden Strike,False,False,0
+780,Thwip!,False,False,0
+781,Wild Pack Squad,False,False,0
+782,The Clone Saga,False,False,0
+783,"Doc Ock, Sinister Scientist",False,False,0
+784,Doc Ock's Henchmen,False,False,0
+785,Flying Octobot,False,False,0
+786,Robotics Mastery,False,False,0
+787,Think Twice,False,False,0
+788,Time Warp,False,False,0
+789,Unstable Experiment,False,False,0
+790,Whoosh!,False,False,0
+791,Alien Symbiosis,False,False,0
+792,Common Crook,False,False,0
+793,Dark Ritual,False,False,0
+794,Deadly Dispute,False,True,1
+795,Doomfall,False,False,0
+796,Doomsday,False,False,0
+797,Inner Demons Gangsters,False,False,0
+798,The Spot's Portal,False,False,0
+799,"Swarm, Being of Bees",False,False,0
+800,"Venom, Evil Unleashed",False,False,0
+801,Venomized Cat,False,False,0
+802,Big Score,False,False,0
+803,Grapeshot,False,False,0
+804,Heroes' Hangout,False,False,0
+805,"Hobgoblin, Mantled Marauder",False,False,0
+806,Lightning Bolt,False,False,0
+807,Masked Meower,False,False,0
+808,Romantic Rendezvous,False,False,0
+809,Shock,False,False,0
+810,Stegron the Dinosaur Man,False,False,0
+811,Taxi Driver,False,False,0
+812,Unlucky Witness,False,False,0
+813,Wisecrack,False,False,0
+814,Commune with Dinosaurs,False,False,0
+815,Farseek,False,False,0
+816,Lurking Lizards,False,False,0
+817,Scout the City,False,False,0
+818,"Spider-Rex, Daring Dino",False,False,0
+819,Terrific Team-Up,False,False,0
+820,Gallant Citizen,False,False,0
+821,Mob Lookout,False,False,0
+822,Pumpkin Bombardment,False,False,0
+823,Rhino's Rampage,False,False,0
+824,Eerie Gravestone,False,False,0
+825,Rocket-Powered Goblin Glider,False,False,0
+826,Spider-Mobile,False,False,0
+827,Savage Lands,False,False,0
+828,Terramorphic Expanse,False,False,0
+829,"Black Panther, Claws of Bast",False,False,0
+830,"Iron Man, Modern Marvel",False,False,0
+831,"Black Widow, Daring Operative",False,False,0
+832,"Spider-Man, Web-Spinner",False,False,0
+833,"Hulk, Brutal Brawler",False,False,0
+834,"Ant-Man, Scott Lang",False,False,0
+835,"Captain America, Steve Rogers",False,False,0
+836,Captain's Defense // Captain's Defense,False,False,0
+837,"The Falcon, Sam Wilson",False,False,0
+838,"Hawkeye, Clint Barton",False,False,0
+839,Hawkeye's Shot,False,False,0
+840,Hero in Training,False,False,0
+841,Mandroid Squadron,False,False,0
+842,"Mockingbird, Bobbi Morse",False,False,0
+843,Soldier On,False,False,0
+844,"The Wasp, Janet Van Dyne",False,False,0
+845,"Winter Soldier, Bucky Barnes",False,False,0
+846,"Black Widow, Natasha Romanoff",False,False,0
+847,Concentrated Fire,False,False,0
+848,Crimson Operative,False,False,0
+849,"Happy Hogan, Dauntless Driver",False,False,0
+850,"Hulk, Bruce Banner",False,False,0
+851,"Iron Man, Tony Stark",False,False,0
+852,Power Boost,False,False,0
+853,"Quicksilver, Pietro Maximoff",False,False,0
+854,Repulsor Rays,False,False,0
+855,"Scarlet Witch, Wanda Maximoff",False,False,0
+856,Smashing Spree,False,False,0
+857,"Spider-Man, Hometown Hero",False,False,0
+858,Mountain,False,False,0
+859,Mountain,False,False,0
+860,Mountain,False,False,0
+861,Mountain,False,False,0
+862,Mountain,False,False,0
+863,Mountain,False,False,0
+864,Mountain,False,False,0
+865,Mountain,False,False,0
+866,Plains,False,False,0
+867,Plains,False,False,0
+868,Plains,False,False,0
+869,Plains,False,False,0
+870,Plains,False,False,0
+871,Plains,False,False,0
+872,Plains,False,False,0
+873,Plains,False,False,0
+874,"Spider-Gwen, Free Spirit",False,False,0
+875,Invisible Woman,False,False,0
+876,Mister Fantastic,False,False,0
+877,Human Torch,False,False,0
+878,The Thing,False,False,0
+879,"Captain America, Team Leader",False,False,0
+880,"Doctor Doom, King of Latveria",False,False,0
+881,"T'Challa, the Black Panther",False,False,0
+882,"Rescue, Pepper Potts",False,False,0
+883,"Thor, Asgard's Avenger",False,False,0
