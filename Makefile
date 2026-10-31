@@ -11,7 +11,7 @@ REMOTE_DIR  ?= /home/icedeal/compose/mtg-utils
 
 .PHONY: help check-remote prepare-env sync-code remote-build init-db \
         sync-catalog sync-media start-services verify migrate-db deploy-full \
-        deploy-update status remote-logs remote-down baseline-db
+        deploy-update status remote-logs remote-down baseline-db sync-prod-db
 
 help:
 	@echo ""
@@ -38,6 +38,9 @@ help:
 	@echo "  make deploy-update    - CD habitual: sync, build, migraciones, reinicio y verify"
 	@echo "  make remote-logs      - Muestra los logs en vivo de los contenedores remotos"
 	@echo "  make remote-down      - Detiene los contenedores de producción"
+	@echo ""
+	@echo "Desarrollo:"
+	@echo "  make sync-prod-db     - Copia la base de producción (solo lectura) sobre la base local"
 	@echo "=================================================================="
 	@echo ""
 
@@ -61,6 +64,10 @@ migrate-db:
 
 baseline-db:
 	@./scripts/deploy/10_baseline_database.sh
+
+# Read-only on production; replaces the local mtg_utils database after a backup.
+sync-prod-db:
+	@./scripts/deploy/11_sync_prod_db_to_local.sh
 
 sync-catalog:
 	@./scripts/deploy/05_migrate_catalog.sh

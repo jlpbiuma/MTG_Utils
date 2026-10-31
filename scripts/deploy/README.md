@@ -50,3 +50,22 @@ futuros cambios deben incorporarse a migraciones versionadas.
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/deploy/tests -v
 bash -n scripts/deploy/04_init_database.sh scripts/deploy/09_migrate_database.sh
 ```
+
+## Copia de producción para desarrollo
+
+`make sync-prod-db` copia toda la base de producción en la base local
+`mtg_utils` del contenedor `mtg-utils-db` (lo arranca si hace falta). En el
+servidor solo se ejecuta `pg_dump` con `default_transaction_read_only=on`: nunca
+se escribe en producción. El volcado se descarga primero a
+`data/db-snapshots/prod-*.dump` y se valida antes de tocar la base local, de la
+que se guarda una copia en `data/db-snapshots/local-before-sync-*.dump`
+(`SKIP_LOCAL_BACKUP=1` la omite). Se conservan los tres últimos volcados de
+producción (`KEEP_DUMPS`). La carpeta está en `.gitignore`: contiene datos
+privados de usuarios.
+
+Tras la copia, aplica en local las migraciones pendientes con
+`DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mtg_utils?schema=public uv run prisma migrate deploy`
+desde `backend/`. Para medir la API contra esa copia:
+`uv run python scripts/bench_api.py run --user <id> --deck <id> --set <código> --out antes.json`
+y, tras el cambio, `compare antes.json despues.json`, que compara tiempos y un
+resumen exacto de cada respuesta.
