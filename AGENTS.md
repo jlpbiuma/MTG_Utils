@@ -60,9 +60,13 @@ copias ni las elimines como limpieza incidental.
   loaders existentes. `PUBLIC_IMAGE_BASE_URL` debe ser accesible desde el cliente;
   los nombres internos de Docker no lo son.
 - La autenticación actual está en `backend/src/services/auth_service.py` y
-  `backend/src/core/auth.py`, con modo demo y compatibilidad con cabeceras de
-  desarrollo. No presupongas validación JWT/Supabase ni aislamiento mediante RLS.
-  Conserva el filtrado por usuario en los servicios al modificar consultas.
+  `backend/src/core/auth.py`. Las sesiones se guardan en `user_sessions` (solo
+  hashes de los tokens) y sin sesión válida la API responde 401. `X-User-Id`
+  solo cambia de usuario a una sesión admin (`ADMIN_USER_EMAILS`); aceptarlo sin
+  sesión, o caer en el usuario demo, requiere `ALLOW_INSECURE_DEV_AUTH`, solo en
+  desarrollo local. No presupongas validación JWT/Supabase ni aislamiento
+  mediante RLS. Conserva el filtrado por usuario en los servicios al modificar
+  consultas.
 
 ## Reglas del dominio y persistencia
 
